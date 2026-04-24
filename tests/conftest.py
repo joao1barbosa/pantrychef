@@ -7,7 +7,7 @@ os.environ.setdefault(
         "postgresql://postgres:postgres@localhost:5433/pantrychef_test",
     ),
 )
-os.environ.setdefault("JWT_SECRET", "test-secret")
+os.environ.setdefault("JWT_SECRET", "test-secret-key-with-at-least-32-bytes")
 os.environ.setdefault("JWT_EXPIRE_MINUTES", "60")
 os.environ.setdefault("AI_API_KEY", "test-key")
 
