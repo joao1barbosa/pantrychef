@@ -1,4 +1,4 @@
-# Guia do Desenvolvedor — Recipe Generator API
+# Guia do Desenvolvedor — Pantrychef
 
 Bem-vindo ao projeto. Este guia cobre o essencial da stack para você começar a desenvolver sem precisar pesquisar tudo do zero. Leia com calma antes de começar sua primeira tarefa.
 
@@ -22,8 +22,8 @@ Pré-requisitos: **VS Code** + extensão **Dev Containers** + **Docker** instala
 
 ```bash
 # 1. Clone o repositório
-git clone https://github.com/seu-usuario/recipe-generator.git
-cd recipe-generator
+git clone https://github.com/joao1barbosa/pantrychef.git
+cd pantrychef
 
 # 2. Copie o arquivo de variáveis de ambiente
 cp .env.example .env
@@ -57,7 +57,7 @@ O flag `--reload` faz o servidor reiniciar automaticamente a cada vez que você 
 ## 2. Estrutura de pastas
 
 ```
-recipe-generator/
+pantrychef/
 ├── app/
 │   ├── main.py          # Ponto de entrada — registra a aplicação e os routers
 │   ├── database.py      # Configuração da conexão com o banco
