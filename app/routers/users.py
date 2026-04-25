@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -54,6 +54,5 @@ def update_me(
 def delete_me(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
-) -> Response:
+) -> None:
     soft_delete_user(db, current_user)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
