@@ -13,6 +13,11 @@ class UserCreate(UserBase):
     senha: str = Field(min_length=8)
 
 
+class UserUpdate(BaseModel):
+    nome: str | None = Field(default=None, min_length=1)
+    senha: str | None = Field(default=None, min_length=8)
+
+
 class UserOut(UserBase):
     model_config = ConfigDict(from_attributes=True)
 

@@ -1,8 +1,10 @@
+from datetime import datetime, timezone
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.user import Usuario
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 from app.services.security import hash_password, verify_password
 
 
@@ -38,3 +40,18 @@ def authenticate_user(db: Session, email: str, senha: str) -> Usuario:
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
+
+
+def update_user(db: Session, user: Usuario, data: UserUpdate) -> Usuario:
+    if data.nome is not None:
+        user.nome = data.nome
+    if data.senha is not None:
+        user.senha_hash = hash_password(data.senha)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def soft_delete_user(db: Session, user: Usuario) -> None:
+    user.deletado_em = datetime.now(timezone.utc)
+    db.commit()
