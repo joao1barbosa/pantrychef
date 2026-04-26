@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import auth, users
+from app.routers import auth, ingredients, users
 
 app = FastAPI(
     title="Recipe Generator API",
@@ -10,6 +10,7 @@ app = FastAPI(
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(ingredients.router)
 
 
 @app.get("/health", tags=["Status"])
