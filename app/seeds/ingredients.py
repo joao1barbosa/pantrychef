@@ -30,3 +30,17 @@ def seed_ingredientes(db: Session) -> None:
     for nome in INGREDIENTES:
         get_or_create_ingrediente(db, nome)
     db.commit()
+
+
+def main() -> None:
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        seed_ingredientes(db)
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    main()
