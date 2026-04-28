@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Text
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -18,3 +19,4 @@ class Receita(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         back_populates="receita",
         cascade="all, delete-orphan",
     )
+    ingredientes = association_proxy("itens", "ingrediente")
