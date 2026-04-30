@@ -1,10 +1,16 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.recipe import Receita
 from app.models.recipe_ingredient import ReceitaIngrediente
+
+
+def _query_receitas(db: Session):
+    return db.query(Receita).options(
+        joinedload(Receita.itens).joinedload(ReceitaIngrediente.ingrediente)
+    )
 from app.schemas.recipe import RecipeCreate
 from app.utils.slug import slugify
 
@@ -59,12 +65,12 @@ def criar_receita(db: Session, data: RecipeCreate) -> dict:
 
 
 def listar_receitas(db: Session) -> list[dict]:
-    receitas = db.query(Receita).order_by(Receita.criado_em.desc()).all()
+    receitas = _query_receitas(db).order_by(Receita.criado_em.desc()).all()
     return [serializar_receita(receita) for receita in receitas]
 
 
 def obter_receita(db: Session, receita_id: UUID) -> dict:
-    receita = db.query(Receita).filter(Receita.id == receita_id).first()
+    receita = _query_receitas(db).filter(Receita.id == receita_id).first()
     if receita is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
