@@ -44,20 +44,24 @@ def serializar_receita(receita: Receita) -> dict:
     }
 
 
+def _montar_itens(data: RecipeCreate) -> list[ReceitaIngrediente]:
+    return [
+        ReceitaIngrediente(
+            ingrediente_id=item.ingrediente_id,
+            quantidade=item.quantidade,
+        )
+        for item in data.ingredientes
+    ]
+
+
 def criar_receita(db: Session, data: RecipeCreate) -> dict:
     receita = Receita(
         nome=data.nome,
         slug=_gerar_slug_unico(db, data.nome),
         modo_preparo=data.modo_preparo,
         categoria=data.categoria,
+        itens=_montar_itens(data),
     )
-    for item in data.ingredientes:
-        receita.itens.append(
-            ReceitaIngrediente(
-                ingrediente_id=item.ingrediente_id,
-                quantidade=item.quantidade,
-            )
-        )
     db.add(receita)
     db.commit()
     db.refresh(receita)
@@ -90,13 +94,7 @@ def atualizar_receita(db: Session, receita_id: UUID, data: RecipeCreate) -> dict
     receita.nome = data.nome
     receita.modo_preparo = data.modo_preparo
     receita.categoria = data.categoria
-    receita.itens = [
-        ReceitaIngrediente(
-            ingrediente_id=item.ingrediente_id,
-            quantidade=item.quantidade,
-        )
-        for item in data.ingredientes
-    ]
+    receita.itens = _montar_itens(data)
     db.commit()
     db.refresh(receita)
     return serializar_receita(receita)
