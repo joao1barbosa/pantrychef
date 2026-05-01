@@ -69,11 +69,40 @@ def listar_receitas(db: Session) -> list[dict]:
     return [serializar_receita(receita) for receita in receitas]
 
 
-def obter_receita(db: Session, receita_id: UUID) -> dict:
+def _buscar_receita_ou_404(db: Session, receita_id: UUID) -> Receita:
     receita = _query_receitas(db).filter(Receita.id == receita_id).first()
     if receita is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Receita não encontrada.",
         )
+    return receita
+
+
+def obter_receita(db: Session, receita_id: UUID) -> dict:
+    return serializar_receita(_buscar_receita_ou_404(db, receita_id))
+
+
+def atualizar_receita(db: Session, receita_id: UUID, data: RecipeCreate) -> dict:
+    receita = _buscar_receita_ou_404(db, receita_id)
+    if data.nome != receita.nome:
+        receita.slug = _gerar_slug_unico(db, data.nome)
+    receita.nome = data.nome
+    receita.modo_preparo = data.modo_preparo
+    receita.categoria = data.categoria
+    receita.itens = [
+        ReceitaIngrediente(
+            ingrediente_id=item.ingrediente_id,
+            quantidade=item.quantidade,
+        )
+        for item in data.ingredientes
+    ]
+    db.commit()
+    db.refresh(receita)
     return serializar_receita(receita)
+
+
+def deletar_receita(db: Session, receita_id: UUID) -> None:
+    receita = _buscar_receita_ou_404(db, receita_id)
+    db.delete(receita)
+    db.commit()
