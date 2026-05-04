@@ -5,8 +5,10 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.recipe import RecipeCreate, RecipeOut
+from app.schemas.search import IngredientSearch
 from app.services.recipe import (
     atualizar_receita,
+    buscar_por_ingredientes,
     criar_receita,
     deletar_receita,
     listar_receitas,
@@ -35,6 +37,18 @@ def create_recipe(data: RecipeCreate, db: Session = Depends(get_db)) -> RecipeOu
 )
 def list_recipes(db: Session = Depends(get_db)) -> list[RecipeOut]:
     return listar_receitas(db)
+
+
+@router.post(
+    "/search",
+    response_model=list[RecipeOut],
+    summary="Buscar receitas por ingredientes",
+    description="Retorna receitas preparáveis com os ingredientes informados (mínimo de 3).",
+)
+def search_recipes(
+    data: IngredientSearch, db: Session = Depends(get_db)
+) -> list[RecipeOut]:
+    return buscar_por_ingredientes(db, data.ingredientes)
 
 
 @router.get(

@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.recipe import Receita
@@ -104,3 +105,32 @@ def deletar_receita(db: Session, receita_id: UUID) -> None:
     receita = _buscar_receita_ou_404(db, receita_id)
     db.delete(receita)
     db.commit()
+
+
+def buscar_por_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[dict]:
+    tem_ingrediente = (
+        select(ReceitaIngrediente.receita_id)
+        .where(ReceitaIngrediente.receita_id == Receita.id)
+        .exists()
+    )
+    requer_externo = (
+        select(ReceitaIngrediente.receita_id)
+        .where(
+            ReceitaIngrediente.receita_id == Receita.id,
+            ReceitaIngrediente.ingrediente_id.notin_(ingrediente_ids),
+        )
+        .exists()
+    )
+    sobreposicao = (
+        select(func.count(ReceitaIngrediente.ingrediente_id))
+        .where(ReceitaIngrediente.receita_id == Receita.id)
+        .scalar_subquery()
+    )
+
+    receitas = (
+        _query_receitas(db)
+        .filter(tem_ingrediente, ~requer_externo)
+        .order_by(sobreposicao.desc(), Receita.nome)
+        .all()
+    )
+    return [serializar_receita(receita) for receita in receitas]
