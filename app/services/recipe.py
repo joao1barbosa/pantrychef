@@ -107,7 +107,7 @@ def deletar_receita(db: Session, receita_id: UUID) -> None:
     db.commit()
 
 
-def buscar_por_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[dict]:
+def _receitas_por_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[Receita]:
     tem_ingrediente = (
         select(ReceitaIngrediente.receita_id)
         .where(ReceitaIngrediente.receita_id == Receita.id)
@@ -127,10 +127,14 @@ def buscar_por_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[di
         .scalar_subquery()
     )
 
-    receitas = (
+    return (
         _query_receitas(db)
         .filter(tem_ingrediente, ~requer_externo)
         .order_by(sobreposicao.desc(), Receita.nome)
         .all()
     )
+
+
+def buscar_por_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[dict]:
+    receitas = _receitas_por_ingredientes(db, ingrediente_ids)
     return [serializar_receita(receita) for receita in receitas]
