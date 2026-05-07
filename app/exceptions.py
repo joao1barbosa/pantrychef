@@ -1,0 +1,2 @@
+class AIServiceUnavailable(Exception):
+    pass
