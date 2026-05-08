@@ -22,6 +22,26 @@ def _extrair_texto(resposta) -> str:
     return resposta.content[0].text
 
 
+def _parse_receita(texto: str) -> dict:
+    dados = json.loads(texto)
+    nome = dados["nome"]
+    modo_preparo = dados["modo_preparo"]
+    ingredientes = dados.get("ingredientes", [])
+    if not isinstance(nome, str) or not isinstance(modo_preparo, str):
+        raise ValueError("campos obrigatórios ausentes")
+    if not isinstance(ingredientes, list):
+        raise ValueError("ingredientes inválidos")
+    return {
+        "nome": nome,
+        "modo_preparo": modo_preparo,
+        "categoria": dados.get("categoria"),
+        "ingredientes": [
+            {"nome": item["nome"], "quantidade": item.get("quantidade")}
+            for item in ingredientes
+        ],
+    }
+
+
 def generate_recipe(ingredientes: list[str], client=None) -> dict:
     client = client or _build_client()
     try:
@@ -35,6 +55,8 @@ def generate_recipe(ingredientes: list[str], client=None) -> dict:
                 }
             ],
         )
-        return json.loads(_extrair_texto(resposta))
+        return _parse_receita(_extrair_texto(resposta))
+    except AIServiceUnavailable:
+        raise
     except Exception as erro:
         raise AIServiceUnavailable(str(erro)) from erro
