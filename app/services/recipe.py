@@ -1,19 +1,22 @@
+from typing import Callable
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.exceptions import AIServiceUnavailable
 from app.models.recipe import Receita
 from app.models.recipe_ingredient import ReceitaIngrediente
+from app.schemas.recipe import RecipeCreate, RecipeIngredientIn
+from app.services.ingredient import get_or_create_ingrediente
+from app.utils.slug import slugify
 
 
 def _query_receitas(db: Session):
     return db.query(Receita).options(
         joinedload(Receita.itens).joinedload(ReceitaIngrediente.ingrediente)
     )
-from app.schemas.recipe import RecipeCreate
-from app.utils.slug import slugify
 
 
 def _gerar_slug_unico(db: Session, nome: str) -> str:
@@ -138,3 +141,52 @@ def _receitas_por_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list
 def buscar_por_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[dict]:
     receitas = _receitas_por_ingredientes(db, ingrediente_ids)
     return [serializar_receita(receita) for receita in receitas]
+
+
+def _nomes_dos_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[str]:
+    from app.models.ingredient import Ingrediente
+
+    linhas = (
+        db.query(Ingrediente.nome)
+        .filter(Ingrediente.id.in_(ingrediente_ids))
+        .all()
+    )
+    return [nome for (nome,) in linhas]
+
+
+def _persistir_receita_gerada(db: Session, gerada: dict) -> dict:
+    ingredientes = []
+    for item in gerada.get("ingredientes", []):
+        ingrediente = get_or_create_ingrediente(db, item["nome"])
+        ingredientes.append(
+            RecipeIngredientIn(
+                ingrediente_id=ingrediente.id, quantidade=item.get("quantidade")
+            )
+        )
+    receita = RecipeCreate(
+        nome=gerada["nome"],
+        modo_preparo=gerada["modo_preparo"],
+        categoria=gerada.get("categoria"),
+        ingredientes=ingredientes,
+    )
+    return criar_receita(db, receita)
+
+
+def buscar_com_fallback_ia(
+    db: Session,
+    ingrediente_ids: list[UUID],
+    gerar: Callable[[list[str]], dict],
+) -> list[dict]:
+    receitas = _receitas_por_ingredientes(db, ingrediente_ids)
+    if receitas:
+        return [serializar_receita(receita) for receita in receitas]
+
+    nomes = _nomes_dos_ingredientes(db, ingrediente_ids)
+    try:
+        gerada = gerar(nomes)
+    except AIServiceUnavailable:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Serviço de IA indisponível no momento.",
+        )
+    return [_persistir_receita_gerada(db, gerada)]

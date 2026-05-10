@@ -1,14 +1,16 @@
+from typing import Callable
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import get_ai_generator
 from app.schemas.recipe import RecipeCreate, RecipeOut
 from app.schemas.search import IngredientSearch
 from app.services.recipe import (
     atualizar_receita,
-    buscar_por_ingredientes,
+    buscar_com_fallback_ia,
     criar_receita,
     deletar_receita,
     listar_receitas,
@@ -46,9 +48,11 @@ def list_recipes(db: Session = Depends(get_db)) -> list[RecipeOut]:
     description="Retorna receitas preparáveis com os ingredientes informados (mínimo de 3).",
 )
 def search_recipes(
-    data: IngredientSearch, db: Session = Depends(get_db)
+    data: IngredientSearch,
+    db: Session = Depends(get_db),
+    gerar: Callable[[list[str]], dict] = Depends(get_ai_generator),
 ) -> list[RecipeOut]:
-    return buscar_por_ingredientes(db, data.ingredientes)
+    return buscar_com_fallback_ia(db, data.ingredientes, gerar)
 
 
 @router.get(
