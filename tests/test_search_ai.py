@@ -70,6 +70,25 @@ def test_ai_result_is_persisted(client, db_session):
     assert db_session.query(Receita).filter_by(nome="Receita IA").count() == 1
 
 
+def test_ai_result_not_duplicated_on_repeat(client, db_session):
+    ids = _ingredientes(db_session)
+
+    def fake_generator(nomes):
+        return {
+            "nome": "Receita IA",
+            "modo_preparo": "Prepare conforme a IA.",
+            "categoria": "IA",
+            "ingredientes": [{"nome": "Tomate", "quantidade": "1"}],
+        }
+
+    _override_ai(fake_generator)
+    payload = {"ingredientes": [ids["tomate"], ids["cebola"], ids["alho"]]}
+    client.post("/recipes/search", json=payload)
+    client.post("/recipes/search", json=payload)
+
+    assert db_session.query(Receita).filter_by(nome="Receita IA").count() == 1
+
+
 def test_ai_unavailable_returns_503(client, db_session):
     ids = _ingredientes(db_session)
 

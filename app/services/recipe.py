@@ -155,6 +155,11 @@ def _nomes_dos_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[st
 
 
 def _persistir_receita_gerada(db: Session, gerada: dict) -> dict:
+    slug = slugify(gerada["nome"])
+    existente = _query_receitas(db).filter(Receita.slug == slug).first()
+    if existente is not None:
+        return serializar_receita(existente)
+
     ingredientes = []
     for item in gerada.get("ingredientes", []):
         ingrediente = get_or_create_ingrediente(db, item["nome"])
