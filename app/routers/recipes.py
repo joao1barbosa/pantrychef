@@ -35,10 +35,14 @@ def create_recipe(data: RecipeCreate, db: Session = Depends(get_db)) -> RecipeOu
     "",
     response_model=list[RecipeOut],
     summary="Listar receitas",
-    description="Retorna todas as receitas cadastradas.",
+    description="Lista receitas, com filtros opcionais por nome e categoria.",
 )
-def list_recipes(db: Session = Depends(get_db)) -> list[RecipeOut]:
-    return listar_receitas(db)
+def list_recipes(
+    nome: str | None = None,
+    categoria: str | None = None,
+    db: Session = Depends(get_db),
+) -> list[RecipeOut]:
+    return listar_receitas(db, nome=nome, categoria=categoria)
 
 
 @router.post(
