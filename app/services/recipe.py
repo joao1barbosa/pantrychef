@@ -72,14 +72,18 @@ def criar_receita(db: Session, data: RecipeCreate) -> dict:
     return serializar_receita(receita)
 
 
-def listar_receitas(
-    db: Session, nome: str | None = None, categoria: str | None = None
-) -> list[dict]:
-    query = _query_receitas(db)
+def _aplicar_filtros(query, nome: str | None, categoria: str | None):
     if nome:
         query = query.filter(Receita.nome.ilike(f"%{nome}%"))
     if categoria:
         query = query.filter(Receita.categoria.ilike(f"%{categoria}%"))
+    return query
+
+
+def listar_receitas(
+    db: Session, nome: str | None = None, categoria: str | None = None
+) -> list[dict]:
+    query = _aplicar_filtros(_query_receitas(db), nome, categoria)
     receitas = query.order_by(Receita.criado_em.desc()).all()
     return [serializar_receita(receita) for receita in receitas]
 
