@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.routers import auth, ingredients, recipes, users
+from app.schemas.health import HealthOut
 
 TAGS_METADATA = [
     {"name": "Status", "description": "Verificação de disponibilidade da API."},
@@ -26,11 +27,9 @@ app.include_router(recipes.router)
 @app.get(
     "/health",
     tags=["Status"],
+    response_model=HealthOut,
     summary="Verificar saúde da API",
     description="Retorna o status de disponibilidade e a versão da aplicação.",
 )
-def health_check():
-    return {
-        "status": "ok",
-        "version": "0.1.0",
-    }
+def health_check() -> HealthOut:
+    return HealthOut(status="ok", version=app.version)
