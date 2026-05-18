@@ -5,9 +5,11 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_ai_generator
+from app.dependencies import get_ai_generator, get_optional_user
+from app.models.user import Usuario
 from app.schemas.recipe import RecipeCreate, RecipeOut
 from app.schemas.search import IngredientSearch
+from app.services.history import registrar_visualizacao
 from app.services.recipe import (
     atualizar_receita,
     buscar_com_fallback_ia,
@@ -65,8 +67,15 @@ def search_recipes(
     summary="Obter receita",
     description="Retorna uma receita específica pelo seu identificador.",
 )
-def get_recipe(receita_id: UUID, db: Session = Depends(get_db)) -> RecipeOut:
-    return obter_receita(db, receita_id)
+def get_recipe(
+    receita_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: Usuario | None = Depends(get_optional_user),
+) -> RecipeOut:
+    receita = obter_receita(db, receita_id)
+    if current_user is not None:
+        registrar_visualizacao(db, current_user.id, receita_id)
+    return receita
 
 
 @router.put(

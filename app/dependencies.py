@@ -11,6 +11,7 @@ from app.services.ai import generate_recipe
 from app.services.security import decode_access_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
 
 credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -40,6 +41,26 @@ def get_current_user(
         raise credentials_exception
 
     return user
+
+
+def get_optional_user(
+    token: str | None = Depends(oauth2_scheme_optional),
+    db: Session = Depends(get_db),
+) -> Usuario | None:
+    if token is None:
+        return None
+    try:
+        payload = decode_access_token(token)
+        subject = payload.get("sub")
+    except jwt.PyJWTError:
+        return None
+    if subject is None:
+        return None
+    return (
+        db.query(Usuario)
+        .filter(Usuario.id == subject, Usuario.deletado_em.is_(None))
+        .first()
+    )
 
 
 def get_ai_generator() -> Callable[[list[str]], dict]:

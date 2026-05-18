@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import auth, ingredients, recipes, users
+from app.routers import auth, history, ingredients, recipes, users
 from app.schemas.health import HealthOut
 
 TAGS_METADATA = [
@@ -9,6 +9,7 @@ TAGS_METADATA = [
     {"name": "Usuários", "description": "Cadastro e gestão de contas de usuário."},
     {"name": "Ingredientes", "description": "Consulta de ingredientes disponíveis."},
     {"name": "Receitas", "description": "Cadastro, busca e geração de receitas."},
+    {"name": "Histórico", "description": "Receitas visualizadas por cada usuário."},
 ]
 
 app = FastAPI(
@@ -22,6 +23,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(ingredients.router)
 app.include_router(recipes.router)
+app.include_router(history.router)
 
 
 @app.get(
