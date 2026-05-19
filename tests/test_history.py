@@ -40,3 +40,14 @@ def test_history_is_per_user(client):
 def test_history_requires_auth_401(client):
     response = client.get("/history")
     assert response.status_code == 401
+
+
+def test_consecutive_views_are_deduplicated(client):
+    headers = _auth(client, "a@example.com")
+    recipe = _create_recipe(client)
+
+    client.get(f"/recipes/{recipe['id']}", headers=headers)
+    client.get(f"/recipes/{recipe['id']}", headers=headers)
+
+    response = client.get("/history", headers=headers)
+    assert len(response.json()) == 1
