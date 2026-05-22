@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.favorite import Favorito
-from app.services.recipe import _buscar_receita_ou_404, serializar_receita
+from app.services.recipe import buscar_receita_ou_404, serializar_receita
 
 
 def _serializar_favorito(favorito: Favorito) -> dict:
@@ -16,7 +16,7 @@ def _serializar_favorito(favorito: Favorito) -> dict:
 
 
 def favoritar(db: Session, usuario_id: UUID, receita_id: UUID) -> dict:
-    _buscar_receita_ou_404(db, receita_id)
+    buscar_receita_ou_404(db, receita_id)
     favorito = (
         db.query(Favorito)
         .filter(

@@ -88,7 +88,7 @@ def listar_receitas(
     return [serializar_receita(receita) for receita in receitas]
 
 
-def _buscar_receita_ou_404(db: Session, receita_id: UUID) -> Receita:
+def buscar_receita_ou_404(db: Session, receita_id: UUID) -> Receita:
     receita = _query_receitas(db).filter(Receita.id == receita_id).first()
     if receita is None:
         raise HTTPException(
@@ -99,11 +99,11 @@ def _buscar_receita_ou_404(db: Session, receita_id: UUID) -> Receita:
 
 
 def obter_receita(db: Session, receita_id: UUID) -> dict:
-    return serializar_receita(_buscar_receita_ou_404(db, receita_id))
+    return serializar_receita(buscar_receita_ou_404(db, receita_id))
 
 
 def atualizar_receita(db: Session, receita_id: UUID, data: RecipeCreate) -> dict:
-    receita = _buscar_receita_ou_404(db, receita_id)
+    receita = buscar_receita_ou_404(db, receita_id)
     if data.nome != receita.nome:
         receita.slug = _gerar_slug_unico(db, data.nome)
     receita.nome = data.nome
@@ -116,7 +116,7 @@ def atualizar_receita(db: Session, receita_id: UUID, data: RecipeCreate) -> dict
 
 
 def deletar_receita(db: Session, receita_id: UUID) -> None:
-    receita = _buscar_receita_ou_404(db, receita_id)
+    receita = buscar_receita_ou_404(db, receita_id)
     db.delete(receita)
     db.commit()
 
