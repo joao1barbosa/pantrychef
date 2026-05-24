@@ -42,19 +42,23 @@ def _parse_receita(texto: str) -> dict:
     }
 
 
+def _chamar_modelo(client, conteudo: str) -> dict:
+    resposta = client.messages.create(
+        model=settings.AI_MODEL,
+        max_tokens=1024,
+        timeout=settings.AI_TIMEOUT,
+        messages=[{"role": "user", "content": conteudo}],
+    )
+    return _parse_receita(_extrair_texto(resposta))
+
+
 def generate_recipe(ingredientes: list[str], client=None) -> dict:
     client = client or _build_client()
     conteudo = PROMPT.format(ingredientes=", ".join(ingredientes))
     ultimo_erro: Exception | None = None
     for _ in range(max(1, settings.AI_MAX_TENTATIVAS)):
         try:
-            resposta = client.messages.create(
-                model=settings.AI_MODEL,
-                max_tokens=1024,
-                timeout=settings.AI_TIMEOUT,
-                messages=[{"role": "user", "content": conteudo}],
-            )
-            return _parse_receita(_extrair_texto(resposta))
+            return _chamar_modelo(client, conteudo)
         except Exception as erro:
             ultimo_erro = erro
     raise AIServiceUnavailable(str(ultimo_erro)) from ultimo_erro
