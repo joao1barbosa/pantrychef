@@ -1,18 +1,10 @@
 from app.dependencies import get_ai_generator
 from app.exceptions import AIServiceUnavailable
 from app.main import app
-from app.models.ingredient import Ingrediente
 
 
-def _ingredientes(db_session):
-    ings = [Ingrediente(nome=n.title(), slug=n) for n in ("tomate", "cebola", "alho")]
-    db_session.add_all(ings)
-    db_session.commit()
-    return [str(i.id) for i in ings]
-
-
-def test_happy_path_end_to_end(client, auth_headers, db_session):
-    ids = _ingredientes(db_session)
+def test_happy_path_end_to_end(client, auth_headers, tres_ingredientes):
+    ids = tres_ingredientes
 
     recipe = client.post(
         "/recipes",
@@ -39,8 +31,8 @@ def test_happy_path_end_to_end(client, auth_headers, db_session):
     assert len(client.get("/history", headers=auth_headers).json()) == 1
 
 
-def test_error_422_few_ingredients(client, db_session):
-    ids = _ingredientes(db_session)
+def test_error_422_few_ingredients(client, tres_ingredientes):
+    ids = tres_ingredientes
     response = client.post("/recipes/search", json={"ingredientes": ids[:2]})
     assert response.status_code == 422
 
@@ -60,8 +52,8 @@ def test_error_401_history_without_token(client):
     assert client.get("/history").status_code == 401
 
 
-def test_error_503_ai_unavailable(client, db_session):
-    ids = _ingredientes(db_session)
+def test_error_503_ai_unavailable(client, tres_ingredientes):
+    ids = tres_ingredientes
 
     def broken(nomes):
         raise AIServiceUnavailable("indisponível")

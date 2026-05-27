@@ -65,6 +65,19 @@ def client(db_session):
 
 
 @pytest.fixture
+def tres_ingredientes(db_session):
+    from app.models.ingredient import Ingrediente
+
+    ingredientes = [
+        Ingrediente(nome=nome.title(), slug=nome)
+        for nome in ("tomate", "cebola", "alho")
+    ]
+    db_session.add_all(ingredientes)
+    db_session.commit()
+    return [str(ingrediente.id) for ingrediente in ingredientes]
+
+
+@pytest.fixture
 def auth_headers(client):
     email = "fixture@example.com"
     client.post(
