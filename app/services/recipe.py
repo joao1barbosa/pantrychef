@@ -121,13 +121,16 @@ def deletar_receita(db: Session, receita_id: UUID) -> None:
     db.commit()
 
 
-def _receitas_por_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[Receita]:
-    tem_ingrediente = (
+def _possui_ingrediente():
+    return (
         select(ReceitaIngrediente.receita_id)
         .where(ReceitaIngrediente.receita_id == Receita.id)
         .exists()
     )
-    requer_externo = (
+
+
+def _requer_ingrediente_externo(ingrediente_ids: list[UUID]):
+    return (
         select(ReceitaIngrediente.receita_id)
         .where(
             ReceitaIngrediente.receita_id == Receita.id,
@@ -135,16 +138,21 @@ def _receitas_por_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list
         )
         .exists()
     )
-    sobreposicao = (
+
+
+def _contagem_sobreposicao():
+    return (
         select(func.count(ReceitaIngrediente.ingrediente_id))
         .where(ReceitaIngrediente.receita_id == Receita.id)
         .scalar_subquery()
     )
 
+
+def _receitas_por_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[Receita]:
     return (
         _query_receitas(db)
-        .filter(tem_ingrediente, ~requer_externo)
-        .order_by(sobreposicao.desc(), Receita.nome)
+        .filter(_possui_ingrediente(), ~_requer_ingrediente_externo(ingrediente_ids))
+        .order_by(_contagem_sobreposicao().desc(), Receita.nome)
         .all()
     )
 
