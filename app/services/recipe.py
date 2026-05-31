@@ -48,6 +48,24 @@ def serializar_receita(receita: Receita) -> dict:
     }
 
 
+def _validar_ingredientes(db: Session, data: RecipeCreate) -> None:
+    from app.models.ingredient import Ingrediente
+
+    ids = {item.ingrediente_id for item in data.ingredientes}
+    if not ids:
+        return
+    existentes = {
+        linha[0]
+        for linha in db.query(Ingrediente.id).filter(Ingrediente.id.in_(ids)).all()
+    }
+    ausentes = ids - existentes
+    if ausentes:
+        raise HTTPException(
+            status_code=422,
+            detail="Um ou mais ingredientes informados não existem.",
+        )
+
+
 def _montar_itens(data: RecipeCreate) -> list[ReceitaIngrediente]:
     return [
         ReceitaIngrediente(
@@ -59,6 +77,7 @@ def _montar_itens(data: RecipeCreate) -> list[ReceitaIngrediente]:
 
 
 def criar_receita(db: Session, data: RecipeCreate) -> dict:
+    _validar_ingredientes(db, data)
     receita = Receita(
         nome=data.nome,
         slug=_gerar_slug_unico(db, data.nome),
@@ -104,6 +123,7 @@ def obter_receita(db: Session, receita_id: UUID) -> dict:
 
 def atualizar_receita(db: Session, receita_id: UUID, data: RecipeCreate) -> dict:
     receita = buscar_receita_ou_404(db, receita_id)
+    _validar_ingredientes(db, data)
     if data.nome != receita.nome:
         receita.slug = _gerar_slug_unico(db, data.nome)
     receita.nome = data.nome
