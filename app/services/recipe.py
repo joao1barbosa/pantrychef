@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.exceptions import AIServiceUnavailable
+from app.models.ingredient import Ingrediente
 from app.models.recipe import Receita
 from app.models.recipe_ingredient import ReceitaIngrediente
 from app.schemas.recipe import RecipeCreate, RecipeIngredientIn
@@ -49,8 +50,6 @@ def serializar_receita(receita: Receita) -> dict:
 
 
 def _validar_ingredientes(db: Session, data: RecipeCreate) -> None:
-    from app.models.ingredient import Ingrediente
-
     ids = {item.ingrediente_id for item in data.ingredientes}
     if not ids:
         return
@@ -183,8 +182,6 @@ def buscar_por_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[di
 
 
 def _nomes_dos_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[str]:
-    from app.models.ingredient import Ingrediente
-
     linhas = (
         db.query(Ingrediente.nome)
         .filter(Ingrediente.id.in_(ingrediente_ids))
