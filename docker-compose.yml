@@ -4,11 +4,9 @@ services:
     ports:
       - "8000:8000"
     env_file: .env
-    volumes:
-      - .:/app
     depends_on:
       - db
-    command: sleep infinity
+    entrypoint: ["./entrypoint.sh"]
 
   db:
     image: postgres:15
