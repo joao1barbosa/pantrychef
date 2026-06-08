@@ -4,6 +4,16 @@ API para geração e busca de receitas a partir dos ingredientes que o usuário 
 em casa. Quando nenhuma receita cadastrada atende à busca, uma receita é gerada por
 IA (Anthropic Claude) e persistida automaticamente.
 
+## Sumário
+
+- [Visão geral](#visão-geral)
+- [Stack](#stack)
+- [Setup](#setup)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Rotas](#rotas)
+- [Regras de negócio](#regras-de-negócio)
+- [Como rodar os testes](#como-rodar-os-testes)
+
 ## Visão geral
 
 - Cadastro e autenticação de usuários (JWT Bearer, senha com hash bcrypt).
