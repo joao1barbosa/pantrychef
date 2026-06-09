@@ -35,6 +35,7 @@ def serializar_receita(receita: Receita) -> dict:
         "id": receita.id,
         "nome": receita.nome,
         "slug": receita.slug,
+        "usuario_id": receita.usuario_id,
         "modo_preparo": receita.modo_preparo,
         "categoria": receita.categoria,
         "criado_em": receita.criado_em,
@@ -75,13 +76,16 @@ def _montar_itens(data: RecipeCreate) -> list[ReceitaIngrediente]:
     ]
 
 
-def criar_receita(db: Session, data: RecipeCreate) -> dict:
+def criar_receita(
+    db: Session, data: RecipeCreate, usuario_id: UUID | None = None
+) -> dict:
     _validar_ingredientes(db, data)
     receita = Receita(
         nome=data.nome,
         slug=_gerar_slug_unico(db, data.nome),
         modo_preparo=data.modo_preparo,
         categoria=data.categoria,
+        usuario_id=usuario_id,
         itens=_montar_itens(data),
     )
     db.add(receita)
@@ -120,8 +124,19 @@ def obter_receita(db: Session, receita_id: UUID) -> dict:
     return serializar_receita(buscar_receita_ou_404(db, receita_id))
 
 
-def atualizar_receita(db: Session, receita_id: UUID, data: RecipeCreate) -> dict:
+def _garantir_dono(receita: Receita, usuario_id: UUID) -> None:
+    if receita.usuario_id != usuario_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não tem permissão para alterar esta receita.",
+        )
+
+
+def atualizar_receita(
+    db: Session, receita_id: UUID, data: RecipeCreate, usuario_id: UUID
+) -> dict:
     receita = buscar_receita_ou_404(db, receita_id)
+    _garantir_dono(receita, usuario_id)
     _validar_ingredientes(db, data)
     if data.nome != receita.nome:
         receita.slug = _gerar_slug_unico(db, data.nome)
@@ -134,8 +149,9 @@ def atualizar_receita(db: Session, receita_id: UUID, data: RecipeCreate) -> dict
     return serializar_receita(receita)
 
 
-def deletar_receita(db: Session, receita_id: UUID) -> None:
+def deletar_receita(db: Session, receita_id: UUID, usuario_id: UUID) -> None:
     receita = buscar_receita_ou_404(db, receita_id)
+    _garantir_dono(receita, usuario_id)
     db.delete(receita)
     db.commit()
 

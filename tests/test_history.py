@@ -10,6 +10,7 @@ def _create_recipe(client, nome="Bolo"):
     return client.post(
         "/recipes",
         json={"nome": nome, "modo_preparo": "Assar.", "categoria": "Doce", "ingredientes": []},
+        headers=_auth(client, "creator@example.com"),
     ).json()
 
 

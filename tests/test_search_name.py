@@ -1,7 +1,16 @@
+def _auth(client, email="searchname@example.com"):
+    client.post("/users", json={"nome": "User", "email": email, "senha": "senha123"})
+    token = client.post(
+        "/auth/login", data={"username": email, "password": "senha123"}
+    ).json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 def _create(client, nome, categoria):
     client.post(
         "/recipes",
         json={"nome": nome, "modo_preparo": "Preparar.", "categoria": categoria, "ingredientes": []},
+        headers=_auth(client),
     )
 
 

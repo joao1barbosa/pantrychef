@@ -14,6 +14,7 @@ def test_happy_path_end_to_end(client, auth_headers, tres_ingredientes):
             "categoria": "Molho",
             "ingredientes": [{"ingrediente_id": ids[0], "quantidade": "3"}],
         },
+        headers=auth_headers,
     ).json()
 
     search = client.post("/recipes/search", json={"ingredientes": ids})

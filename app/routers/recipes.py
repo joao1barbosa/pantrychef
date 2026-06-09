@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_ai_generator, get_optional_user
+from app.dependencies import get_ai_generator, get_current_user, get_optional_user
 from app.models.user import Usuario
 from app.schemas.recipe import RecipeCreate, RecipeOut
 from app.schemas.search import IngredientSearch
@@ -27,10 +27,14 @@ router = APIRouter(prefix="/recipes", tags=["Receitas"])
     response_model=RecipeOut,
     status_code=status.HTTP_201_CREATED,
     summary="Criar receita",
-    description="Cadastra uma nova receita com seus ingredientes e quantidades.",
+    description="Cadastra uma nova receita, vinculada ao usuário autenticado.",
 )
-def create_recipe(data: RecipeCreate, db: Session = Depends(get_db)) -> RecipeOut:
-    return criar_receita(db, data)
+def create_recipe(
+    data: RecipeCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+) -> RecipeOut:
+    return criar_receita(db, data, current_user.id)
 
 
 @router.get(
@@ -82,19 +86,26 @@ def get_recipe(
     "/{receita_id}",
     response_model=RecipeOut,
     summary="Atualizar receita",
-    description="Atualiza os dados e ingredientes de uma receita existente.",
+    description="Atualiza uma receita existente (apenas o usuário que a criou).",
 )
 def update_recipe(
-    receita_id: UUID, data: RecipeCreate, db: Session = Depends(get_db)
+    receita_id: UUID,
+    data: RecipeCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
 ) -> RecipeOut:
-    return atualizar_receita(db, receita_id, data)
+    return atualizar_receita(db, receita_id, data, current_user.id)
 
 
 @router.delete(
     "/{receita_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Remover receita",
-    description="Remove uma receita existente pelo seu identificador.",
+    description="Remove uma receita existente (apenas o usuário que a criou).",
 )
-def delete_recipe(receita_id: UUID, db: Session = Depends(get_db)) -> None:
-    deletar_receita(db, receita_id)
+def delete_recipe(
+    receita_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+) -> None:
+    deletar_receita(db, receita_id, current_user.id)

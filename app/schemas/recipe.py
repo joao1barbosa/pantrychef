@@ -30,5 +30,6 @@ class RecipeOut(RecipeBase):
 
     id: UUID
     slug: str
+    usuario_id: UUID | None = None
     criado_em: datetime
     ingredientes: list[RecipeIngredientOut] = Field(default_factory=list)
