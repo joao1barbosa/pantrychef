@@ -10,6 +10,7 @@ IA (Anthropic Claude) e persistida automaticamente.
 - [Stack](#stack)
 - [Setup](#setup)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Configuração da IA (Claude)](#configuração-da-ia-claude)
 - [Rotas](#rotas)
 - [Regras de negócio](#regras-de-negócio)
 - [Como rodar os testes](#como-rodar-os-testes)
@@ -71,6 +72,46 @@ docker compose exec api python -m app.seeds.ingredients
 | `JWT_EXPIRE_MINUTES` | Validade do token em minutos (padrão `60`). |
 | `AI_API_KEY` | Chave da API da Anthropic. |
 | `AI_MODEL` | Modelo de IA (padrão `claude-haiku-4-5`). |
+| `AI_TIMEOUT` | Tempo limite por chamada à IA, em segundos (padrão `30`). |
+| `AI_MAX_TENTATIVAS` | Número de tentativas por geração (padrão `2`). |
+
+## Configuração da IA (Claude)
+
+A geração de receitas por IA é opcional: o restante da API funciona sem chave. Ela
+só é acionada quando a busca por ingredientes não encontra nenhuma receita no banco
+(RN-02).
+
+1. Gere uma chave em [console.anthropic.com](https://console.anthropic.com) →
+   **API Keys** → **Create Key** (formato `sk-ant-...`). A conta precisa de créditos
+   ativos, caso contrário a chamada falha e a API responde `HTTP 503`.
+
+2. Defina a chave no `.env`:
+
+   ```env
+   AI_API_KEY=sk-ant-sua-chave-aqui
+   AI_MODEL=claude-haiku-4-5
+   ```
+
+3. Recarregue o container (as variáveis são lidas apenas no boot):
+
+   ```bash
+   docker compose up -d --force-recreate api
+   ```
+
+4. Para acionar o fallback, faça uma busca com no mínimo 3 ingredientes que não
+   correspondam a nenhuma receita cadastrada:
+
+   ```http
+   POST /recipes/search
+   {"ingredientes": ["<uuid1>", "<uuid2>", "<uuid3>"]}
+   ```
+
+   A receita é gerada em pt-BR, persistida e retornada. Falhas (chave inválida, sem
+   crédito, timeout) resultam em `HTTP 503` controlado, com uma retentativa antes de
+   falhar.
+
+> Nos testes (`pytest`) a IA é sempre mockada — a chave real só é necessária para uso
+> via Postman ou em produção.
 
 ## Rotas
 
