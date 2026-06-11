@@ -2,7 +2,7 @@
 
 API para geração e busca de receitas a partir dos ingredientes que o usuário tem
 em casa. Quando nenhuma receita cadastrada atende à busca, uma receita é gerada por
-IA (Anthropic Claude) e persistida automaticamente.
+IA (OpenRouter, modelo gratuito) e persistida automaticamente.
 
 ## Sumário
 
@@ -12,7 +12,7 @@ IA (Anthropic Claude) e persistida automaticamente.
 - [Setup rápido (Docker)](#setup-rápido-docker)
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
-- [Configuração da IA (Claude)](#configuração-da-ia-claude)
+- [Configuração da IA (OpenRouter)](#configuração-da-ia-openrouter)
 - [Autenticação](#autenticação)
 - [Rotas](#rotas)
 - [Fluxo de uso (exemplo)](#fluxo-de-uso-exemplo)
@@ -34,7 +34,7 @@ IA (Anthropic Claude) e persistida automaticamente.
 
 - Python 3.11 · FastAPI · SQLAlchemy 2 · Alembic
 - PostgreSQL 15
-- Anthropic SDK (modelo `claude-haiku-4-5`)
+- OpenAI SDK apontado para a [OpenRouter](https://openrouter.ai) (modelo `openrouter/free`)
 - Pytest
 - Docker / Docker Compose
 
@@ -53,7 +53,7 @@ IA (Anthropic Claude) e persistida automaticamente.
    ```
 
    Defina pelo menos um `JWT_SECRET` próprio. A `AI_API_KEY` só é necessária para o
-   fallback de IA (veja [Configuração da IA](#configuração-da-ia-claude)).
+   fallback de IA (veja [Configuração da IA](#configuração-da-ia-openrouter)).
 
 2. Suba todo o ambiente com um único comando. A API aplica as migrações no boot
    (`alembic upgrade head`) e inicia o servidor:
@@ -107,26 +107,43 @@ tests/               # suíte de testes (pytest)
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | sim | Credenciais do banco (usadas pelo container do Postgres). |
 | `JWT_SECRET` | sim | Segredo usado para assinar os tokens JWT (mín. 32 bytes). |
 | `JWT_EXPIRE_MINUTES` | não | Validade do token em minutos (padrão `60`). |
-| `AI_API_KEY` | só p/ IA | Chave da API da Anthropic. |
-| `AI_MODEL` | não | Modelo de IA (padrão `claude-haiku-4-5`). |
+| `AI_API_KEY` | só p/ IA | Chave da API da OpenRouter (`sk-or-...`). |
+| `AI_BASE_URL` | não | Endpoint compatível com OpenAI (padrão `https://openrouter.ai/api/v1`). |
+| `AI_MODEL` | não | Modelo de IA (padrão `openrouter/free`). |
 | `AI_TIMEOUT` | não | Tempo limite por chamada à IA, em segundos (padrão `30`). |
 | `AI_MAX_TENTATIVAS` | não | Número de tentativas por geração (padrão `2`). |
 
-## Configuração da IA (Claude)
+## Configuração da IA (OpenRouter)
 
 A geração de receitas por IA é opcional: o restante da API funciona sem chave. Ela
 só é acionada quando a busca por ingredientes não encontra nenhuma receita no banco
 (RN-02).
 
-1. Gere uma chave em [console.anthropic.com](https://console.anthropic.com) →
-   **API Keys** → **Create Key** (formato `sk-ant-...`). A conta precisa de créditos
-   ativos, caso contrário a chamada falha e a API responde `HTTP 503`.
+A integração usa o **SDK da OpenAI** apontado para a **OpenRouter** (endpoint
+compatível com OpenAI). O modelo padrão `openrouter/free` roteia para modelos
+gratuitos — suficiente para demonstrações, sem custo.
+
+**Por que OpenRouter:** centraliza dezenas de modelos (de vários provedores) atrás de
+um único endpoint compatível com OpenAI. Trocar de modelo é mudar apenas a variável
+`AI_MODEL` — sem alterar código nem SDK. Isso facilita comparar modelos, controlar
+custo e ter um caminho gratuito para demonstração.
+
+> O roteador `openrouter/free` escolhe um modelo gratuito automaticamente — prático
+> para testar, mas com latência e formato de resposta variáveis. Para uso real, o
+> recomendado é **fixar um modelo específico** via `AI_MODEL` (ex.:
+> `meta-llama/llama-3.3-70b-instruct:free`), obtendo resultados mais estáveis.
+
+1. Crie uma chave em [openrouter.ai](https://openrouter.ai) → **Keys** →
+   **Create Key** (formato `sk-or-...`). O tier gratuito tem limites de uso (cap
+   diário e por minuto); ao excedê-los, ou em falha do provedor, a API responde
+   `HTTP 503` controlado.
 
 2. Defina a chave no `.env`:
 
    ```env
-   AI_API_KEY=sk-ant-sua-chave-aqui
-   AI_MODEL=claude-haiku-4-5
+   AI_API_KEY=sk-or-sua-chave-aqui
+   AI_BASE_URL=https://openrouter.ai/api/v1
+   AI_MODEL=openrouter/free
    ```
 
 3. Recarregue o container (as variáveis são lidas apenas no boot):
