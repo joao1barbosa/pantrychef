@@ -6,27 +6,32 @@ from app.exceptions import AIServiceUnavailable
 from app.services import ai
 
 
-class _Block:
-    def __init__(self, text):
-        self.text = text
+class _Message:
+    def __init__(self, content):
+        self.content = content
+
+
+class _Choice:
+    def __init__(self, content):
+        self.message = _Message(content)
 
 
 class _Resp:
     def __init__(self, text):
-        self.content = [_Block(text)]
+        self.choices = [_Choice(text)]
 
 
-class _TimeoutMessages:
+class _TimeoutCompletions:
     def create(self, **kwargs):
         raise TimeoutError("tempo esgotado")
 
 
-class _MalformedMessages:
+class _MalformedCompletions:
     def create(self, **kwargs):
         return _Resp("isto não é json")
 
 
-class _FlakyMessages:
+class _FlakyCompletions:
     def __init__(self, payload):
         self.calls = 0
         self._payload = payload
@@ -39,18 +44,18 @@ class _FlakyMessages:
 
 
 class _Client:
-    def __init__(self, messages):
-        self.messages = messages
+    def __init__(self, completions):
+        self.chat = type("Chat", (), {"completions": completions})
 
 
 def test_ai_timeout_raises_controlled_error():
     with pytest.raises(AIServiceUnavailable):
-        ai.generate_recipe(["Tomate", "Cebola", "Alho"], client=_Client(_TimeoutMessages()))
+        ai.generate_recipe(["Tomate", "Cebola", "Alho"], client=_Client(_TimeoutCompletions()))
 
 
 def test_ai_malformed_response_handled():
     with pytest.raises(AIServiceUnavailable):
-        ai.generate_recipe(["Tomate", "Cebola", "Alho"], client=_Client(_MalformedMessages()))
+        ai.generate_recipe(["Tomate", "Cebola", "Alho"], client=_Client(_MalformedCompletions()))
 
 
 def test_ai_retries_once_then_succeeds():
@@ -60,10 +65,10 @@ def test_ai_retries_once_then_succeeds():
         "categoria": "Prato principal",
         "ingredientes": [{"nome": "Tomate", "quantidade": "1"}],
     }
-    messages = _FlakyMessages(payload)
-    result = ai.generate_recipe(["Tomate", "Cebola", "Alho"], client=_Client(messages))
+    completions = _FlakyCompletions(payload)
+    result = ai.generate_recipe(["Tomate", "Cebola", "Alho"], client=_Client(completions))
     assert result["nome"] == "Refogado"
-    assert messages.calls == 2
+    assert completions.calls == 2
 
 
 def test_system_stays_up_after_ai_failure(client, db_session):

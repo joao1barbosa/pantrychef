@@ -6,12 +6,17 @@ from app.exceptions import AIServiceUnavailable
 from app.services.ai import generate_recipe
 
 
-class _FakeBlock:
-    def __init__(self, text):
-        self.text = text
+class _FakeMessage:
+    def __init__(self, content):
+        self.content = content
 
 
-class _FakeMessages:
+class _FakeChoice:
+    def __init__(self, content):
+        self.message = _FakeMessage(content)
+
+
+class _FakeCompletions:
     def __init__(self, payload=None, error=None):
         self._payload = payload
         self._error = error
@@ -19,12 +24,14 @@ class _FakeMessages:
     def create(self, **kwargs):
         if self._error is not None:
             raise self._error
-        return type("Resp", (), {"content": [_FakeBlock(json.dumps(self._payload))]})
+        return type("Resp", (), {"choices": [_FakeChoice(json.dumps(self._payload))]})
 
 
 class _FakeClient:
     def __init__(self, payload=None, error=None):
-        self.messages = _FakeMessages(payload=payload, error=error)
+        self.chat = type(
+            "Chat", (), {"completions": _FakeCompletions(payload=payload, error=error)}
+        )
 
 
 def test_ai_generate_returns_structured_recipe():

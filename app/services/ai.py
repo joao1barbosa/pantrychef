@@ -13,13 +13,13 @@ PROMPT = (
 
 
 def _build_client():
-    from anthropic import Anthropic
+    from openai import OpenAI
 
-    return Anthropic(api_key=settings.AI_API_KEY)
+    return OpenAI(base_url=settings.AI_BASE_URL, api_key=settings.AI_API_KEY)
 
 
 def _extrair_texto(resposta) -> str:
-    return resposta.content[0].text
+    return resposta.choices[0].message.content
 
 
 def _parse_receita(texto: str) -> dict:
@@ -43,7 +43,7 @@ def _parse_receita(texto: str) -> dict:
 
 
 def _chamar_modelo(client, conteudo: str) -> dict:
-    resposta = client.messages.create(
+    resposta = client.chat.completions.create(
         model=settings.AI_MODEL,
         max_tokens=1024,
         timeout=settings.AI_TIMEOUT,
