@@ -1,6 +1,17 @@
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+_RAIZ_LOCAL = Path(__file__).resolve().parent.parent.parent
+_RAIZ_CONTAINER = Path("/workspaces/pantrychef")
+
+
+def _raiz_do_monorepo() -> Path:
+    for candidato in (_RAIZ_LOCAL, _RAIZ_CONTAINER):
+        if (candidato / "README.md").exists():
+            return candidato
+    return _RAIZ_LOCAL
+
+
+ROOT = _raiz_do_monorepo()
 SECOES_OBRIGATORIAS = [
     "setup",
     "rotas",

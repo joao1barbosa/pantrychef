@@ -5,3 +5,9 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
+
+# Agent configuration (local only)
+AGENTS.md
+CLAUDE.md
+docs/agents/
+docs/adr/

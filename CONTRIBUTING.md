@@ -1,68 +1,147 @@
 # Guia de Contribuição
-Para garantir a organização e a clareza do histórico deste projeto, adotamos padrões específicos para a criação de branches e commits.
-## 📌 Padronização
-Este guia baseia-se na convenção [Convetional Commit](https://www.conventionalcommits.org/pt-br/v1.0.0/). As diretrizes aqui estipuladas aplicam-se à nomenclatura de commits e estendem-se à estrutura de branches.
 
----
-## 💬 Nomenclatura de Commits
-A estrutura base de um commit deve seguir o formato:
+Este guia define as convenções de commits, branches e organização de código do
+PantryChef. Seguir estes padrões mantém o histórico limpo, o monorepo organizado e
+as revisões mais rápidas.
+
+## 📝 Nomenclatura de Commits
+
+Seguimos a convenção [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/).
+A estrutura base de um commit é:
 
 ```bash
 <tipo>(escopo): <descrição>
 ```
-_Exemplo: `feat(cadastro): validação do número de whatsapp`_
 
-1. **Tipo**
-O tipo indica o contexto da alteração. Os principais são:
-- **feat**: Nova funcionalidade.
-- **fix**: Correção de bug.
-- **refactor**: Alteração no código que não corrige um bug nem adiciona funcionalidade.
-- **docs**: Alterações em documentações ou comentários.
-Outros tipos comuns:
-- **chore**: Mudanças que não afetam o código ou o usuário final (ex: `.gitignore`).
-- **build**: Alterações no sistema de build ou dependências externas (ex: npm).
-- **ci**: Arquivos e scripts de configuração de CI.
-- **perf**: Melhorias de desempenho.
-- **style**: Alterações visuais ou de formatação que não afetam a lógica (cores, alinhamento).
-- **test**: Criação ou alteração de testes.
+_Exemplo: `feat(cadastro): validação de e-mail duplicado`_
 
-2. **Escopo(Opcional)**
-Identifica a área do sistema afetada, facilitando a leitura rápida. Exemplos: `login`, `cadastro`, `tabela-transacoes`.
+### Tipos
 
-3. **Descrição**
-É o corpo do commit. Deve conter uma frase curta e objetiva descrevendo o que foi realizado.
+| Tipo | Uso |
+|---|---|
+| `feat` | Nova funcionalidade. |
+| `fix` | Correção de bug. |
+| `refactor` | Alteração que não corrige bug nem adiciona funcionalidade. |
+| `docs` | Alterações em documentação ou comentários. |
+| `chore` | Mudanças que não afetam código ou usuário final (ex.: `.gitignore`). |
+| `build` | Alterações no sistema de build ou dependências externas. |
+| `ci` | Arquivos e scripts de configuração de CI. |
+| `perf` | Melhorias de desempenho. |
+| `style` | Formatação que não altera a lógica. |
+| `test` | Criação ou alteração de testes. |
 
----
+O **escopo** (opcional) identifica a área afetada, ex.: `api`, `auth`, `recipes`,
+`docs`. A **descrição** deve ser curta, objetiva e no imperativo.
+
+## 🗂 Estrutura do Projeto (Monorepo)
+
+O repositório é um monorepo com apps e pacotes autocontidos:
+
+```
+pantrychef/
+├── apps/
+│   ├── api/                    # Backend FastAPI
+│   │   ├── app/                # Código-fonte (models, schemas, services, routers)
+│   │   ├── migrations/         # Versões do Alembic
+│   │   ├── tests/              # Suíte de testes (pytest)
+│   │   └── ...configs          # Dockerfile, alembic.ini, pytest.ini, requirements.txt
+│   └── web/                    # (placeholder) front-end
+├── packages/
+│   └── shared-types/           # (placeholder) tipos compartilhados
+├── db/                         # Dump inicial do banco
+└── docker-compose*.yml         # Orquestração local
+```
+
+- Cada app possui **dependências, configurações e testes próprios**.
+- **Não misture** código de apps diferentes em um mesmo arquivo.
+- Ao adicionar dependências, atualize o `requirements.txt` do app afetado.
+
 ## 🌿 Estrutura de Branches
-O repositório utiliza duas branches principais que possuem fluxo de CI/CD e deploy automatizado:
-- **`main`**: Contém o código estável em produção.
-- **`develop`**: Branch de integração e testes. Todo novo desenvolvimento deve ser integrado aqui antes de seguir para a `main`. É a base do ambiente de desenvolvimento.
 
->[!Warning]
-Jamais faça push direto na main.
-### Fluxo de Criação
-Para contribuir, crie uma branch a partir da `develop`. A nomenclatura das branches segue uma lógica similar à dos commits, refletindo as tarefas (tasks) do Board de Projeto no GitHub para garantir rastreabilidade:
+O repositório utiliza duas branches principais:
+
+- **`main`** — código estável em produção.
+- **`develop`** — branch de integração; todo desenvolvimento passa por aqui antes
+  da `main`.
+
+> [!Warning]
+> Nunca faça push direto na `main`.
+
+Para contribuir, crie uma branch a partir da `develop`. A nomenclatura reflete as
+tarefas do Board de Projeto no GitHub, garantindo rastreabilidade:
 
 ```bash
 <tipo>/<numero-da-task>-<nome-da-task>
 ```
+
 _Exemplo: `feat/114-ajustes-na-tela-de-cadastro`_
 
-1. **Tipo**: Geralmente utiliza-se os tipos principais (`feat`, `fix`, `refactor`).
-2. **Número da task**: ID correspondente no Board de Projeto.
-3. **Nome da task**: Título da tarefa no Board de Projeto.
+- **Tipo:** `feat`, `fix`, `refactor`.
+- **Número da task:** ID correspondente no Board de Projeto.
+- **Nome da task:** título da tarefa no Board de Projeto.
 
----
-## 🤝 Padrões de Merge e Fluxo de Trabalho
-O fluxo de integração segue a ordem: **`task` → `develop` → `main`**
-### Como contribuir:
-1. **Crie uma branch** a partir da `develop`.
-2. **Realize seus commits** seguindo o padrão descrito neste documento.
-3. **Abra um Pull Request (PR)** direcionado à branch `develop`.
-4. **Descreva suas alterações** na PR para orientar o revisor.
-5. **Solicite a revisão** do código.
-6. **Realize o merge** após a aprovação (caso tenha permissão).
-7. **Remova a branch** da task após a conclusão do merge.
+## 🤝 Merge e Fluxo de Trabalho
 
->[!important]
-> O merge da branch develop na main é feita pelo gerente do projeto.
+O fluxo de integração segue a ordem: **task → develop → main**.
+
+1. Crie uma branch a partir da `develop`.
+2. Realize os commits seguindo o padrão descrito acima.
+3. Abra um **Pull Request (PR)** direcionado à `develop`.
+4. Descreva as alterações na PR para orientar o revisor.
+5. Solicite a revisão do código.
+6. Realize o merge após a aprovação.
+7. Remova a branch da task após a conclusão do merge.
+
+> [!important]
+> O merge da branch `develop` na `main` é feito pelo gerente do projeto.
+
+## 📐 Convenções de Código
+
+### Um recurso por camada
+
+Cada recurso do domínio (usuário, receita, ingrediente, favorito, histórico) tem um
+arquivo próprio em cada camada:
+
+```
+app/
+├── models/     # model.py     → ex.: app/models/recipe.py
+├── schemas/    # schemas.py   → ex.: app/schemas/recipe.py
+├── services/   # services.py  → ex.: app/services/recipe.py
+└── routers/    # router.py    → ex.: app/routers/recipes.py
+```
+
+Assim, a navegação entre camadas para um mesmo recurso é direta e previsível.
+
+### Routers finos
+
+Os routers são apenas a **camada HTTP**: recebem a request, chamam o service e
+devolvem o `response_model`. **Nenhuma regra de negócio** deve viver no router —
+ela pertence ao service correspondente.
+
+```python
+# router (fino)
+@router.get("/recipes/{receita_id}", response_model=RecipeOut)
+def detalhar_receita(receita_id: UUID, service: RecipeService = Depends()):
+    return service.obter_por_id(receita_id)
+```
+
+### Nunca retornar modelo do SQLAlchemy diretamente
+
+A saída das rotas deve ser sempre um **schema Pydantic** (`response_model`), nunca
+uma instância de modelo do SQLAlchemy. Isso desacopla a representação da API da
+camada de persistência e evita vazamento de campos internos.
+
+### Mudanças de esquema passam pelo Alembic
+
+Qualquer alteração nas tabelas (nova coluna, nova tabela, índice, FK) deve ser feita
+por **migração do Alembic**, nunca por SQL manual fora do versionamento:
+
+```bash
+# dentro do container da API
+docker compose exec api alembic revision --autogenerate -m "descricao"
+docker compose exec api alembic upgrade head
+```
+
+Revise a migração gerada antes de commitar — o `--autogenerate` pode não capturar
+tudo. O `db/dump.sql` é uma referência de dados de exemplo e não substitui o
+controle de versão do esquema.

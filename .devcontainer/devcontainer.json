@@ -2,7 +2,7 @@
   "name": "PantryChef",
   "dockerComposeFile": "../docker-compose.yml",
   "service": "api",
-  "workspaceFolder": "/app",
+  "workspaceFolder": "/workspaces/pantrychef",
 
   "customizations": {
     "vscode": {
@@ -32,6 +32,6 @@
     }
   },
 
-  "postCreateCommand": "pip install -r requirements.txt",
+  "postCreateCommand": "pip install -r apps/api/requirements.txt",
   "remoteUser": "root"
 }
