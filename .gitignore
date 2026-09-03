@@ -11,3 +11,7 @@ AGENTS.md
 CLAUDE.md
 docs/agents/
 docs/adr/
+
+# Frontend (apps/web)
+apps/web/node_modules/
+apps/web/dist/
