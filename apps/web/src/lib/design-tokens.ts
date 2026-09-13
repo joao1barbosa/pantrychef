@@ -1,18 +1,26 @@
+/**
+ * PantryChef Design Tokens
+ *
+ * Paleta e tokens alinhados com o @theme inline do Tailwind (src/index.css).
+ * Use as variáveis CSS via `var(--color-*)` ou as classes utilitárias do Tailwind
+ * (ex: `bg-marrom`, `text-terracota`, `border-dourado`).
+ */
+
 export const colors = {
-  marromProfundo: '#2C1810',
+  marrom: '#2C1810',
   bege: '#F5F0EB',
   terracota: '#C0392B',
   dourado: '#D4943A',
-  verdeOliva: '#5B7553',
+  verde: '#5B7553',
 } as const
 
 export const spacing = {
-  xs: '0.25rem',
-  sm: '0.5rem',
-  md: '1rem',
-  lg: '1.5rem',
-  xl: '2rem',
-  '2xl': '3rem',
+  xs: 'var(--spacing-xs)',
+  sm: 'var(--spacing-sm)',
+  md: 'var(--spacing-md)',
+  lg: 'var(--spacing-lg)',
+  xl: 'var(--spacing-xl)',
+  '2xl': 'var(--spacing-2xl)',
 } as const
 
 export const typography = {
