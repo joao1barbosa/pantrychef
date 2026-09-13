@@ -4,6 +4,6 @@ import App from '../App'
 describe('App', () => {
   it('renders the title', () => {
     render(<App />)
-    expect(screen.getByText('PantryChef')).toBeInTheDocument()
+    expect(screen.getByText('PantryChef Design System')).toBeInTheDocument()
   })
 })

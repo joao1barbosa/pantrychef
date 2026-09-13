@@ -1,9 +1,7 @@
+import { ThemeShowcase } from '@/components/theme-showcase'
+
 function App() {
-  return (
-    <div className="min-h-screen bg-[#F5F0EB] flex items-center justify-center">
-      <h1 className="text-3xl font-bold text-[#2C1810]">PantryChef</h1>
-    </div>
-  )
+  return <ThemeShowcase />
 }
 
 export default App
