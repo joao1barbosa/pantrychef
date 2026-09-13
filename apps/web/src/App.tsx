@@ -1,7 +1,7 @@
-import { ThemeShowcase } from '@/components/theme-showcase'
+import { AppRouter } from '@/app/router'
 
 function App() {
-  return <ThemeShowcase />
+  return <AppRouter />
 }
 
 export default App

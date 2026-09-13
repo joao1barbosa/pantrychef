@@ -2,8 +2,9 @@ import { render, screen } from '@testing-library/react'
 import App from '../App'
 
 describe('App', () => {
-  it('renders the title', () => {
+  it('renders without crashing', () => {
     render(<App />)
-    expect(screen.getByText('PantryChef Design System')).toBeInTheDocument()
+    // The app should render the home page by default
+    expect(screen.getByRole('heading', { name: 'Home' })).toBeInTheDocument()
   })
 })
