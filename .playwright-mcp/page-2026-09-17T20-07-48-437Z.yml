@@ -1,0 +1,10 @@
+- generic [ref=f10e2]:
+  - heading "Unexpected Application Error!" [level=2] [ref=f10e43]
+  - heading "404 Not Found" [level=3] [ref=f10e44]
+  - paragraph [ref=f10e45]: 💿 Hey developer 👋
+  - paragraph [ref=f10e46]:
+    - text: You can provide a way better UX than this when your app throws errors by providing your own
+    - code [ref=f10e47]: ErrorBoundary
+    - text: or
+    - code [ref=f10e48]: errorElement
+    - text: prop on your route.

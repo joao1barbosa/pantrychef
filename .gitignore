@@ -12,6 +12,9 @@ CLAUDE.md
 docs/agents/
 docs/adr/
 
+# Playwright MCP (local validation)
+.playwright-mcp/
+
 # Frontend (apps/web)
 apps/web/node_modules/
 apps/web/dist/

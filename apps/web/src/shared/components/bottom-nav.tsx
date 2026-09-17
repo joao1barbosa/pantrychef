@@ -3,10 +3,10 @@ import { Home, Heart, Clock, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { to: '/', icon: Home, label: 'Home' },
-  { to: '/favorites', icon: Heart, label: 'Favoritos' },
-  { to: '/history', icon: Clock, label: 'Histórico' },
-  { to: '/profile', icon: User, label: 'Perfil' },
+  { to: '/home', icon: Home, label: 'Home' },
+  { to: '/home/favorites', icon: Heart, label: 'Favoritos' },
+  { to: '/home/history', icon: Clock, label: 'Histórico' },
+  { to: '/home/profile', icon: User, label: 'Perfil' },
 ]
 
 export function BottomNav() {

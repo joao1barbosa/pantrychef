@@ -1,0 +1,25 @@
+- generic [ref=f10e3]:
+  - main [ref=f10e4]:
+    - generic [ref=f10e6]:
+      - generic [ref=f10e7]:
+        - heading "O que tem na cozinha?" [level=1] [ref=f10e8]
+        - paragraph [ref=f10e9]: Escolha pelo menos 3 ingredientes e descubra receitas.
+      - generic [ref=f10e11]:
+        - generic [ref=f10e15]: Buscar ingredientes
+        - searchbox "Buscar ingredientes" [ref=f10e16]
+      - generic [ref=f10e17]:
+        - button "Buscar receitas" [disabled]
+        - button "Filtros" [ref=f10e18]
+      - paragraph [ref=f10e19]: Selecione 3 ingredientes para buscar.
+      - main [ref=f10e20]:
+        - paragraph [ref=f10e21]: Busque por ingredientes para ver receitas aqui.
+  - navigation [ref=f10e22]:
+    - generic [ref=f10e23]:
+      - link "Home" [ref=f10e24] [cursor=pointer]:
+        - /url: /
+      - link "Favoritos" [ref=f10e29] [cursor=pointer]:
+        - /url: /favorites
+      - link "Histórico" [ref=f10e33] [cursor=pointer]:
+        - /url: /history
+      - link "Perfil" [ref=f10e38] [cursor=pointer]:
+        - /url: /profile
