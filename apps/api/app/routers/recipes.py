@@ -1,13 +1,13 @@
 from typing import Callable
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_ai_generator, get_current_user, get_optional_user
 from app.models.user import Usuario
-from app.schemas.recipe import RecipeCreate, RecipeOut
+from app.schemas.recipe import Dificuldade, RecipeCreate, RecipeOut
 from app.schemas.search import IngredientSearch
 from app.services.history import registrar_visualizacao
 from app.services.recipe import (
@@ -41,14 +41,32 @@ def create_recipe(
     "",
     response_model=list[RecipeOut],
     summary="Listar receitas",
-    description="Lista receitas, com filtros opcionais por nome e categoria.",
+    description=(
+        "Lista receitas, com filtros opcionais por nome, categoria, "
+        "tempo de preparo, dificuldade e ordenação."
+    ),
 )
 def list_recipes(
     nome: str | None = None,
     categoria: str | None = None,
+    tempo_min: int | None = Query(default=None, gt=0),
+    tempo_max: int | None = Query(default=None, gt=0),
+    dificuldade: Dificuldade | None = None,
+    ordenacao: str | None = Query(
+        default=None,
+        pattern="^(tempo_asc|tempo_desc|nome_asc|nome_desc|recentes)$",
+    ),
     db: Session = Depends(get_db),
 ) -> list[RecipeOut]:
-    return listar_receitas(db, nome=nome, categoria=categoria)
+    return listar_receitas(
+        db,
+        nome=nome,
+        categoria=categoria,
+        tempo_min=tempo_min,
+        tempo_max=tempo_max,
+        dificuldade=dificuldade,
+        ordenacao=ordenacao,
+    )
 
 
 @router.post(

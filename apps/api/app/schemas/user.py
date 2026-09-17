@@ -1,7 +1,10 @@
 from datetime import datetime
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+NonEmptyStr = Annotated[str, Field(min_length=1)]
 
 
 class UserBase(BaseModel):
@@ -23,3 +26,21 @@ class UserOut(UserBase):
 
     id: UUID
     criado_em: datetime
+
+
+class PreferencesBase(BaseModel):
+    categorias_favoritas: list[NonEmptyStr] = Field(default_factory=list)
+    restricoes_alimentares: list[NonEmptyStr] = Field(default_factory=list)
+
+
+class PreferencesCreate(PreferencesBase):
+    pass
+
+
+class PreferencesUpdate(BaseModel):
+    categorias_favoritas: list[NonEmptyStr] | None = None
+    restricoes_alimentares: list[NonEmptyStr] | None = None
+
+
+class PreferencesResponse(PreferencesBase):
+    model_config = ConfigDict(from_attributes=True)

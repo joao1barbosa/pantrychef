@@ -1,7 +1,10 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+
+Dificuldade = Literal["facil", "medio", "dificil"]
 
 
 class RecipeIngredientIn(BaseModel):
@@ -19,10 +22,16 @@ class RecipeBase(BaseModel):
     nome: str = Field(min_length=1)
     modo_preparo: str = Field(min_length=1)
     categoria: str | None = None
+    tempo_preparo: int | None = Field(default=None, gt=0)
+    dificuldade: Dificuldade | None = None
 
 
 class RecipeCreate(RecipeBase):
     ingredientes: list[RecipeIngredientIn] = Field(default_factory=list)
+
+
+class RecipeUpdate(RecipeCreate):
+    pass
 
 
 class RecipeOut(RecipeBase):
@@ -33,3 +42,6 @@ class RecipeOut(RecipeBase):
     usuario_id: UUID | None = None
     criado_em: datetime
     ingredientes: list[RecipeIngredientOut] = Field(default_factory=list)
+
+
+RecipeResponse = RecipeOut

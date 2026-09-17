@@ -38,6 +38,8 @@ def serializar_receita(receita: Receita) -> dict:
         "usuario_id": receita.usuario_id,
         "modo_preparo": receita.modo_preparo,
         "categoria": receita.categoria,
+        "tempo_preparo": receita.tempo_preparo,
+        "dificuldade": receita.dificuldade,
         "criado_em": receita.criado_em,
         "ingredientes": [
             {
@@ -85,6 +87,8 @@ def criar_receita(
         slug=_gerar_slug_unico(db, data.nome),
         modo_preparo=data.modo_preparo,
         categoria=data.categoria,
+        tempo_preparo=data.tempo_preparo,
+        dificuldade=data.dificuldade,
         usuario_id=usuario_id,
         itens=_montar_itens(data),
     )
@@ -94,19 +98,52 @@ def criar_receita(
     return serializar_receita(receita)
 
 
-def _aplicar_filtros(query, nome: str | None, categoria: str | None):
+def _aplicar_filtros(
+    query,
+    nome: str | None,
+    categoria: str | None,
+    tempo_min: int | None = None,
+    tempo_max: int | None = None,
+    dificuldade: str | None = None,
+):
     if nome:
         query = query.filter(Receita.nome.ilike(f"%{nome}%"))
     if categoria:
         query = query.filter(Receita.categoria.ilike(f"%{categoria}%"))
+    if tempo_min is not None:
+        query = query.filter(Receita.tempo_preparo >= tempo_min)
+    if tempo_max is not None:
+        query = query.filter(Receita.tempo_preparo <= tempo_max)
+    if dificuldade:
+        query = query.filter(Receita.dificuldade == dificuldade)
     return query
 
 
+def _aplicar_ordenacao(query, ordenacao: str | None):
+    if ordenacao == "tempo_asc":
+        return query.order_by(Receita.tempo_preparo.asc().nulls_last())
+    if ordenacao == "tempo_desc":
+        return query.order_by(Receita.tempo_preparo.desc().nulls_last())
+    if ordenacao == "nome_asc":
+        return query.order_by(Receita.nome.asc())
+    if ordenacao == "nome_desc":
+        return query.order_by(Receita.nome.desc())
+    return query.order_by(Receita.criado_em.desc())
+
+
 def listar_receitas(
-    db: Session, nome: str | None = None, categoria: str | None = None
+    db: Session,
+    nome: str | None = None,
+    categoria: str | None = None,
+    tempo_min: int | None = None,
+    tempo_max: int | None = None,
+    dificuldade: str | None = None,
+    ordenacao: str | None = None,
 ) -> list[dict]:
-    query = _aplicar_filtros(_query_receitas(db), nome, categoria)
-    receitas = query.order_by(Receita.criado_em.desc()).all()
+    query = _aplicar_filtros(
+        _query_receitas(db), nome, categoria, tempo_min, tempo_max, dificuldade
+    )
+    receitas = _aplicar_ordenacao(query, ordenacao).all()
     return [serializar_receita(receita) for receita in receitas]
 
 
@@ -143,6 +180,8 @@ def atualizar_receita(
     receita.nome = data.nome
     receita.modo_preparo = data.modo_preparo
     receita.categoria = data.categoria
+    receita.tempo_preparo = data.tempo_preparo
+    receita.dificuldade = data.dificuldade
     receita.itens = _montar_itens(data)
     db.commit()
     db.refresh(receita)
@@ -224,6 +263,8 @@ def _persistir_receita_gerada(db: Session, gerada: dict) -> dict:
         nome=gerada["nome"],
         modo_preparo=gerada["modo_preparo"],
         categoria=gerada.get("categoria"),
+        tempo_preparo=gerada.get("tempo_preparo"),
+        dificuldade=gerada.get("dificuldade"),
         ingredientes=ingredientes,
     )
     return criar_receita(db, receita)

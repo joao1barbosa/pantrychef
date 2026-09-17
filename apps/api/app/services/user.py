@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.user import Usuario
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import PreferencesUpdate, UserCreate, UserUpdate
 from app.services.security import hash_password, verify_password
 
 
@@ -55,3 +55,20 @@ def update_user(db: Session, user: Usuario, data: UserUpdate) -> Usuario:
 def soft_delete_user(db: Session, user: Usuario) -> None:
     user.deletado_em = datetime.now(timezone.utc)
     db.commit()
+
+
+def get_preferences(db: Session, user: Usuario) -> Usuario:
+    db.refresh(user)
+    return user
+
+
+def update_preferences(
+    db: Session, user: Usuario, data: PreferencesUpdate
+) -> Usuario:
+    if data.categorias_favoritas is not None:
+        user.categorias_favoritas = data.categorias_favoritas
+    if data.restricoes_alimentares is not None:
+        user.restricoes_alimentares = data.restricoes_alimentares
+    db.commit()
+    db.refresh(user)
+    return user
