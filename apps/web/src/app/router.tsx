@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { MainLayout } from './layouts/main-layout'
@@ -10,6 +10,15 @@ import { RegisterPage } from '@/features/auth/pages/register-page'
 import { RecipesPage } from '@/features/recipes/pages/recipes-page'
 import { RecipeDetailPage } from '@/features/recipes/pages/recipe-detail-page'
 import { IngredientsPage } from '@/features/recipes/pages/ingredients-page'
+
+function RootRedirect() {
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    window.location.replace(token ? '/home' : '/login')
+  }, [])
+
+  return null
+}
 
 const FavoritesPage = lazy(() =>
   import('@/features/favorites/pages/favorites-page').then((m) => ({
@@ -54,6 +63,10 @@ function LazyProtected({
 const router = createBrowserRouter([
   {
     path: '/',
+    element: <RootRedirect />,
+  },
+  {
+    path: '/home',
     element: <MainLayout />,
     children: [
       { index: true, element: <HomePage /> },
