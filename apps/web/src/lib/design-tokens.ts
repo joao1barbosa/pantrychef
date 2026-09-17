@@ -15,12 +15,12 @@ export const colors = {
 } as const
 
 export const spacing = {
-  xs: 'var(--spacing-xs)',
-  sm: 'var(--spacing-sm)',
-  md: 'var(--spacing-md)',
-  lg: 'var(--spacing-lg)',
-  xl: 'var(--spacing-xl)',
-  '2xl': 'var(--spacing-2xl)',
+  xs: 'var(--pantry-spacing-xs)',
+  sm: 'var(--pantry-spacing-sm)',
+  md: 'var(--pantry-spacing-md)',
+  lg: 'var(--pantry-spacing-lg)',
+  xl: 'var(--pantry-spacing-xl)',
+  '2xl': 'var(--pantry-spacing-2xl)',
 } as const
 
 export const typography = {

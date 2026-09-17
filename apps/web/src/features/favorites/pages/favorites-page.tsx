@@ -99,9 +99,9 @@ export function FavoritesPage() {
   return (
     <FavoritosScreen
       receitas={receitas}
-      onAbrirReceita={(receita) => navigate(`/recipes/${receita.id}`)}
+      onAbrirReceita={(receita) => navigate(`/home/recipes/${receita.id}`)}
       onRemoverFavorito={(receita) => removeMutation.mutate(receita.id)}
-      onDescobrir={() => navigate('/')}
+      onDescobrir={() => navigate('/home')}
     />
   )
 }

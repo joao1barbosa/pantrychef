@@ -63,13 +63,13 @@
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
 
-    /* === Spacing === */
-    --spacing-xs: 0.25rem;
-    --spacing-sm: 0.5rem;
-    --spacing-md: 1rem;
-    --spacing-lg: 1.5rem;
-    --spacing-xl: 2rem;
-    --spacing-2xl: 3rem;
+    /* === Spacing (prefixo próprio p/ não colidir com utilitários do Tailwind) === */
+    --pantry-spacing-xs: 0.25rem;
+    --pantry-spacing-sm: 0.5rem;
+    --pantry-spacing-md: 1rem;
+    --pantry-spacing-lg: 1.5rem;
+    --pantry-spacing-xl: 2rem;
+    --pantry-spacing-2xl: 3rem;
 }
 
 :root {
