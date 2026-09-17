@@ -16,7 +16,7 @@ export function MainLayout() {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
-      <main className="pb-20 md:ml-64 md:pb-0">
+      <main className="relative min-h-screen pb-20 md:ml-64 md:pb-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -24,7 +24,7 @@ export function MainLayout() {
             initial="initial"
             animate="animate"
             exit="exit"
-            className="min-h-screen"
+            className="absolute inset-0"
           >
             <Outlet />
           </motion.div>
