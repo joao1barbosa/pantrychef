@@ -2,23 +2,26 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field
 
-NonEmptyStr = Annotated[str, Field(min_length=1)]
+NonEmptyStr = Annotated[str, Field(min_length=1, max_length=50)]
+EmailNormalizado = Annotated[EmailStr, AfterValidator(lambda email: email.strip().lower())]
+SENHA_MIN = 8
 
 
 class UserBase(BaseModel):
-    nome: str = Field(min_length=1)
-    email: EmailStr
+    nome: str = Field(min_length=1, max_length=100)
+    email: EmailNormalizado
 
 
 class UserCreate(UserBase):
-    senha: str = Field(min_length=8)
+    senha: str = Field(min_length=SENHA_MIN, max_length=128)
 
 
 class UserUpdate(BaseModel):
-    nome: str | None = Field(default=None, min_length=1)
-    senha: str | None = Field(default=None, min_length=8)
+    nome: str | None = Field(default=None, min_length=1, max_length=100)
+    email: EmailNormalizado | None = None
+    senha: str | None = Field(default=None, min_length=SENHA_MIN, max_length=128)
 
 
 class UserOut(UserBase):
@@ -38,8 +41,8 @@ class PreferencesCreate(PreferencesBase):
 
 
 class PreferencesUpdate(BaseModel):
-    categorias_favoritas: list[NonEmptyStr] | None = None
-    restricoes_alimentares: list[NonEmptyStr] | None = None
+    categorias_favoritas: list[NonEmptyStr] | None = Field(default=None, max_length=20)
+    restricoes_alimentares: list[NonEmptyStr] | None = Field(default=None, max_length=20)
 
 
 class PreferencesResponse(PreferencesBase):

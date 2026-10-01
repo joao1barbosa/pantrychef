@@ -47,7 +47,7 @@ def read_me(current_user: Usuario = Depends(get_current_user)) -> UserOut:
     "/me",
     response_model=UserOut,
     summary="Atualizar perfil",
-    description="Atualiza nome e/ou senha do usuário autenticado.",
+    description="Atualiza nome, e-mail e/ou senha do usuário autenticado.",
 )
 def update_me(
     data: UserUpdate,
