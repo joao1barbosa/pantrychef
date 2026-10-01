@@ -1,6 +1,6 @@
 {
   "name": "PantryChef",
-  "dockerComposeFile": "../docker-compose.yml",
+  "dockerComposeFile": ["../docker-compose.yml", "../docker-compose.dev.yml"],
   "service": "api",
   "workspaceFolder": "/workspaces/pantrychef",
 
