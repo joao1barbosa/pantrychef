@@ -1,153 +1,67 @@
-import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
   BarChart3,
-  Check,
   Clock,
   Heart,
   Pencil,
-  Share2,
-  ShoppingBasket,
+  Sparkles,
+  Trash2,
   UtensilsCrossed,
 } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { fetchWithAuth } from '@/lib/api'
+import { ApiError, fetchWithAuth, getToken, mensagemDeErro } from '@/lib/api'
+import { dividirPassos, formatarTempo, rotuloDificuldade } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { StatusMessage } from '@/app/components/status-pages'
+import { AiBadge, RecipeCover } from '@/shared/components/recipe-card'
+import { ConfirmDialog } from '@/shared/components/confirm-dialog'
+import { useAuth } from '@/features/auth/hooks/use-auth'
+import { useAlternarFavorito, useFavoritos } from '@/features/favorites/hooks/use-favorites'
 
-interface RecipeIngredient {
-  ingrediente_id: string
-  nome: string
-  quantidade?: string | null
-}
+import { ShareMenu } from '../components/share-menu'
+import { useRecipe } from '../hooks/use-recipes'
 
-interface RecipeDetail {
-  id: string
-  slug: string
-  nome: string
-  modo_preparo: string
-  categoria?: string | null
-  tempo_preparo?: number | null
-  dificuldade?: string | null
-  porcoes?: number | null
-  usuario_id?: string | null
-  criado_em: string
-  ingredientes: RecipeIngredient[]
-}
-
-interface Favorite {
-  id: string
-  receita_id: string
-  salvo_em: string
-}
-
-interface CurrentUser {
-  id: string
-  nome: string
-  email: string
-}
-
-function rotuloDificuldade(dificuldade: string | null | undefined): string {
-  if (dificuldade === 'facil') return 'Fácil'
-  if (dificuldade === 'medio') return 'Médio'
-  if (dificuldade === 'dificil') return 'Difícil'
-  return '—'
-}
-
-function isNotFoundError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message.toLowerCase() : ''
-  return (
-    message.includes('não encontr') ||
-    message.includes('nao encontr') ||
-    message.includes('not found') ||
-    message.includes('404')
-  )
+function useVoltar() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  return () => (location.key === 'default' ? navigate('/') : navigate(-1))
 }
 
 export function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const voltar = useVoltar()
   const queryClient = useQueryClient()
-  const [linkCopiado, setLinkCopiado] = useState(false)
-  const hasToken =
-    typeof window !== 'undefined' && Boolean(localStorage.getItem('token'))
+  const { user } = useAuth()
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
+  const [marcados, setMarcados] = useState<Set<string>>(new Set())
 
-  const {
-    data: receita,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ['recipe', id],
-    queryFn: () => fetchWithAuth(`/recipes/${id}`) as Promise<RecipeDetail>,
-    enabled: Boolean(id),
-  })
+  const { data: receita, isLoading, error } = useRecipe(id)
+  const { data: favoritos } = useFavoritos()
+  const alternarFavorito = useAlternarFavorito()
 
-  const { data: favoritos } = useQuery({
-    queryKey: ['favorites'],
-    queryFn: () => fetchWithAuth('/favorites') as Promise<Favorite[]>,
-    enabled: hasToken,
-  })
+  useEffect(() => {
+    if (receita && getToken()) queryClient.invalidateQueries({ queryKey: ['history'] })
+  }, [receita?.id, queryClient]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { data: usuario } = useQuery({
-    queryKey: ['users', 'me'],
-    queryFn: () => fetchWithAuth('/users/me') as Promise<CurrentUser>,
-    enabled: hasToken,
-    retry: false,
-  })
-
-  const isFavorito = Boolean(
-    receita && (favoritos ?? []).some((f) => f.receita_id === receita.id),
-  )
-  const isAutor = Boolean(
-    receita?.usuario_id && usuario && receita.usuario_id === usuario.id,
-  )
-
-  const favoritoMutation = useMutation({
-    mutationFn: async () => {
-      if (!receita) return
-      if (isFavorito) {
-        await fetchWithAuth(`/favorites/${receita.id}`, { method: 'DELETE' })
-      } else {
-        await fetchWithAuth('/favorites', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ receita_id: receita.id }),
-        })
-      }
-    },
+  const excluir = useMutation({
+    mutationFn: () => fetchWithAuth(`/recipes/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ['recipe', id] })
+      queryClient.invalidateQueries({ queryKey: ['recipes'] })
       queryClient.invalidateQueries({ queryKey: ['favorites'] })
+      queryClient.invalidateQueries({ queryKey: ['history'] })
+      queryClient.invalidateQueries({ queryKey: ['search'] })
+      navigate('/recipes', { replace: true })
     },
   })
-
-  const compartilhar = async () => {
-    const url = window.location.href
-    const titulo = receita?.nome ?? 'Receita PantryChef'
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: titulo, url })
-      } catch {
-        // Usuário cancelou o compartilhamento — nada a fazer.
-      }
-      return
-    }
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      const campo = document.createElement('textarea')
-      campo.value = url
-      document.body.appendChild(campo)
-      campo.select()
-      document.execCommand('copy')
-      document.body.removeChild(campo)
-    }
-    setLinkCopiado(true)
-    window.setTimeout(() => setLinkCopiado(false), 2000)
-  }
 
   if (isLoading) {
     return (
@@ -156,173 +70,203 @@ export function RecipeDetailPage() {
         <div className="mt-4 h-[220px] animate-pulse rounded-[20px] bg-foreground/10 md:h-[320px]" />
         <div className="mt-5 h-8 w-3/4 animate-pulse rounded-lg bg-foreground/10" />
         <div className="mt-3 h-4 w-1/2 animate-pulse rounded bg-foreground/10" />
-        <div className="mt-6 space-y-3">
-          <div className="h-4 w-full animate-pulse rounded bg-foreground/10" />
-          <div className="h-4 w-5/6 animate-pulse rounded bg-foreground/10" />
-          <div className="h-4 w-2/3 animate-pulse rounded bg-foreground/10" />
-        </div>
         <p className="sr-only">Carregando receita...</p>
       </div>
     )
   }
 
   if (error || !receita) {
-    const naoEncontrada = error ? isNotFoundError(error) : true
+    const status = error instanceof ApiError ? error.status : 404
+    const naoEncontrada = status === 404 || status === 422
     return (
-      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3 px-6 py-16 text-center">
-        <span className="flex size-[72px] items-center justify-center rounded-full bg-primary/15 text-primary">
-          <UtensilsCrossed className="size-8" />
-        </span>
-        <h1 className="text-2xl font-extrabold tracking-tight">
-          {naoEncontrada ? 'Receita não encontrada' : 'Erro ao carregar receita'}
-        </h1>
-        <p className="text-[15px] leading-relaxed text-foreground/70">
-          {naoEncontrada
+      <StatusMessage
+        icon={<UtensilsCrossed />}
+        titulo={naoEncontrada ? 'Receita não encontrada' : 'Erro ao carregar receita'}
+        texto={
+          naoEncontrada
             ? 'Essa receita pode ter sido removida ou o link está incorreto.'
-            : 'Tente novamente em instantes.'}
-        </p>
-        <Button
-          type="button"
-          onClick={() => navigate('/home')}
-          className="mt-2 h-12 rounded-full px-6 text-[15px] font-bold"
-        >
-          Voltar para o início
-        </Button>
-      </div>
+            : mensagemDeErro(error, 'Tente novamente em instantes.')
+        }
+        acao={
+          <Link
+            to="/"
+            className={cn(buttonVariants(), 'mt-2 h-12 rounded-full px-6 text-[15px] font-bold')}
+          >
+            Voltar para o início
+          </Link>
+        }
+      />
     )
   }
 
-  const passos = receita.modo_preparo
-    .split(/\s*\d+[.)-]\s+/)
-    .map((p) => p.trim())
-    .filter(Boolean)
+  const isFavorito = (favoritos ?? []).some((f) => f.receita_id === receita.id)
+  const isAutor = Boolean(receita.usuario_id && user && receita.usuario_id === user.id)
+  const dificuldade = rotuloDificuldade(receita.dificuldade)
+  const passos = dividirPassos(receita.modo_preparo)
+
+  const favoritar = () => {
+    if (!getToken()) {
+      navigate(`/login?next=${encodeURIComponent(location.pathname)}`)
+      return
+    }
+    alternarFavorito.mutate({ receitaId: receita.id, favoritar: !isFavorito })
+  }
+
+  const alternarMarcado = (ingredienteId: string) =>
+    setMarcados((atual) => {
+      const novo = new Set(atual)
+      if (novo.has(ingredienteId)) novo.delete(ingredienteId)
+      else novo.add(ingredienteId)
+      return novo
+    })
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pt-6 pb-28 md:pb-10">
       <button
         type="button"
-        onClick={() => navigate(-1)}
+        onClick={voltar}
         className="flex h-11 items-center gap-1.5 rounded-full pr-4 pl-1 text-sm font-semibold text-foreground/70 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
       >
         <ArrowLeft className="size-5" />
         Voltar
       </button>
 
-      {/* Capa — mesmo raio e estilo dos cards de favoritos */}
-      <div className="relative mt-3 h-[220px] overflow-hidden rounded-[20px] bg-gradient-to-br from-[#2C1810] via-[#5B7553] to-[#D4943A] md:h-[320px]">
-        <div
-          aria-hidden
-          className="absolute inset-0 flex items-center justify-center text-[#F5F0EB]/40"
-        >
-          <UtensilsCrossed className="size-20 md:size-28" strokeWidth={1.25} />
+      <RecipeCover
+        receita={receita}
+        className="mt-3 h-[200px] rounded-[20px] md:h-[300px]"
+        iconClassName="size-20 md:size-28"
+      >
+        <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+          {receita.categoria && (
+            <Badge className="h-7 rounded-full bg-[#FFFBF7]/95 px-3 text-xs font-bold text-[#B07A2A]">
+              {receita.categoria}
+            </Badge>
+          )}
+          {receita.gerada_por_ia && <AiBadge className="h-7" />}
         </div>
-        {receita.categoria && (
-          <Badge
-            variant="dourado"
-            className="absolute top-4 left-4 h-7 rounded-full bg-[#FFFBF7]/95 px-3 text-xs font-bold text-[#D4943A]"
-          >
-            {receita.categoria}
-          </Badge>
-        )}
         {isAutor && (
-          <Badge
-            variant="verde"
-            className="absolute top-4 right-4 h-7 rounded-full bg-[#FFFBF7]/95 px-3 text-xs font-bold"
-          >
+          <Badge className="absolute top-4 right-4 h-7 rounded-full bg-[#FFFBF7]/95 px-3 text-xs font-bold text-[#5B7553]">
             Sua receita
           </Badge>
         )}
-      </div>
+      </RecipeCover>
 
       <div className="mt-5 flex flex-col gap-4">
         <div>
           <h1 className="text-[28px] leading-tight font-extrabold tracking-tight md:text-[34px]">
             {receita.nome}
           </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-foreground/70">
-            {receita.tempo_preparo != null && (
-              <span className="flex items-center gap-1.5 font-semibold">
-                <Clock className="size-4" />
-                {receita.tempo_preparo} min
-              </span>
-            )}
-            {receita.dificuldade && (
-              <span className="flex items-center gap-1.5 font-semibold">
-                <BarChart3 className="size-4" />
-                {rotuloDificuldade(receita.dificuldade)}
-              </span>
-            )}
-            {receita.porcoes != null && (
-              <span className="flex items-center gap-1.5 font-semibold">
-                <ShoppingBasket className="size-4" />
-                {receita.porcoes} {receita.porcoes === 1 ? 'porção' : 'porções'}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Ações */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            onClick={() => favoritoMutation.mutate()}
-            disabled={favoritoMutation.isPending}
-            aria-pressed={isFavorito}
-            className={cn(
-              'h-12 rounded-full px-5 text-[15px] font-bold',
-              !isFavorito &&
-                'bg-foreground text-background hover:bg-foreground/90',
-            )}
-          >
-            <Heart
-              className="size-5"
-              fill={isFavorito ? 'currentColor' : 'none'}
-            />
-            {favoritoMutation.isPending
-              ? 'Salvando...'
-              : isFavorito
-                ? 'Favoritada'
-                : 'Favoritar'}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={compartilhar}
-            className="h-12 rounded-full px-5 text-[15px] font-bold"
-          >
-            {linkCopiado ? <Check className="size-5" /> : <Share2 className="size-5" />}
-            {linkCopiado ? 'Link copiado!' : 'Compartilhar'}
-          </Button>
-          {isAutor && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(`/home/recipes/${receita.id}/edit`)}
-              className="h-12 rounded-full px-5 text-[15px] font-bold"
-            >
-              <Pencil className="size-5" />
-              Editar
-            </Button>
+          {(receita.tempo_preparo != null || dificuldade) && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-foreground/70">
+              {receita.tempo_preparo != null && (
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <Clock className="size-4" aria-hidden />
+                  {formatarTempo(receita.tempo_preparo)}
+                </span>
+              )}
+              {dificuldade && (
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <BarChart3 className="size-4" aria-hidden />
+                  {dificuldade}
+                </span>
+              )}
+            </div>
+          )}
+          {receita.gerada_por_ia && (
+            <p className="mt-3 flex items-start gap-2 text-sm text-foreground/70">
+              <Sparkles className="mt-0.5 size-4 shrink-0 text-dourado" aria-hidden />
+              Receita criada pela IA. Confira quantidades e tempos antes de preparar.
+            </p>
           )}
         </div>
 
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            onClick={favoritar}
+            disabled={alternarFavorito.isPending}
+            aria-pressed={isFavorito}
+            className={cn(
+              'h-12 rounded-full px-5 text-[15px] font-bold',
+              !isFavorito && 'bg-foreground text-background hover:bg-foreground/90',
+            )}
+          >
+            <Heart className="size-5" fill={isFavorito ? 'currentColor' : 'none'} />
+            {isFavorito ? 'Favoritada' : 'Favoritar'}
+          </Button>
+          <ShareMenu
+            titulo={receita.nome}
+            url={`${window.location.origin}/recipes/${receita.id}`}
+          />
+          {isAutor && (
+            <>
+              <Link
+                to={`/recipes/${receita.id}/edit`}
+                className={cn(
+                  buttonVariants({ variant: 'outline' }),
+                  'h-12 rounded-full px-5 text-[15px] font-bold',
+                )}
+              >
+                <Pencil className="size-5" />
+                Editar
+              </Link>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setConfirmandoExclusao(true)}
+                className="h-12 rounded-full px-4 text-[15px] font-bold text-destructive hover:text-destructive"
+              >
+                <Trash2 className="size-5" />
+                Excluir
+              </Button>
+            </>
+          )}
+        </div>
+        {alternarFavorito.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {mensagemDeErro(alternarFavorito.error, 'Não foi possível atualizar o favorito.')}
+          </p>
+        )}
+
         <div className="grid gap-4 md:grid-cols-5">
-          {/* Ingredientes */}
           <Card className="gap-0 rounded-[20px] border-foreground/10 p-5 shadow-none md:col-span-2">
             <h2 className="text-lg font-extrabold tracking-tight">Ingredientes</h2>
             {receita.ingredientes.length > 0 ? (
-              <ul className="mt-3 divide-y divide-foreground/10">
-                {receita.ingredientes.map((ing) => (
-                  <li key={ing.ingrediente_id} className="flex items-baseline justify-between gap-3 py-2.5 text-[15px]">
-                    <span className="font-medium">{ing.nome}</span>
-                    {ing.quantidade && (
-                      <span className="shrink-0 rounded-full bg-foreground/[0.07] px-2.5 py-1 text-[13px] font-bold text-foreground/70">
-                        {ing.quantidade}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              <>
+                <p className="mt-1 text-xs text-foreground/60">
+                  Toque para marcar o que já separou.
+                </p>
+                <ul className="mt-2 divide-y divide-foreground/10">
+                  {receita.ingredientes.map((ing) => {
+                    const marcado = marcados.has(ing.ingrediente_id)
+                    return (
+                      <li key={ing.ingrediente_id}>
+                        <label className="flex cursor-pointer items-baseline gap-3 py-2.5 text-[15px]">
+                          <input
+                            type="checkbox"
+                            checked={marcado}
+                            onChange={() => alternarMarcado(ing.ingrediente_id)}
+                            className="size-4 translate-y-0.5 accent-[#5B7553]"
+                          />
+                          <span
+                            className={cn(
+                              'flex-1 font-medium',
+                              marcado && 'text-foreground/50 line-through',
+                            )}
+                          >
+                            {ing.nome}
+                          </span>
+                          {ing.quantidade && (
+                            <span className="shrink-0 rounded-full bg-foreground/[0.07] px-2.5 py-1 text-[13px] font-bold text-foreground/70">
+                              {ing.quantidade}
+                            </span>
+                          )}
+                        </label>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </>
             ) : (
               <p className="mt-3 text-[15px] text-foreground/70">
                 Nenhum ingrediente cadastrado para esta receita.
@@ -330,16 +274,15 @@ export function RecipeDetailPage() {
             )}
           </Card>
 
-          {/* Modo de preparo */}
           <Card className="gap-0 rounded-[20px] border-foreground/10 p-5 shadow-none md:col-span-3">
             <h2 className="text-lg font-extrabold tracking-tight">Modo de preparo</h2>
-            {passos.length > 0 ? (
+            {passos.length > 1 ? (
               <ol className="mt-3 space-y-3">
                 {passos.map((passo, i) => (
                   <li key={i} className="flex gap-3 text-[15px] leading-relaxed">
                     <span
                       aria-hidden
-                      className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#C0392B]/10 text-[13px] font-extrabold text-[#C0392B]"
+                      className="flex size-7 shrink-0 items-center justify-center rounded-full bg-terracota/10 text-[13px] font-extrabold text-terracota"
                     >
                       {i + 1}
                     </span>
@@ -355,6 +298,20 @@ export function RecipeDetailPage() {
           </Card>
         </div>
       </div>
+
+      <ConfirmDialog
+        aberto={confirmandoExclusao}
+        titulo="Excluir receita?"
+        descricao={
+          excluir.isError
+            ? mensagemDeErro(excluir.error, 'Não foi possível excluir. Tente novamente.')
+            : `“${receita.nome}” será removida para todos. Essa ação não pode ser desfeita.`
+        }
+        confirmar="Excluir"
+        carregando={excluir.isPending}
+        onConfirmar={() => excluir.mutate()}
+        onCancelar={() => setConfirmandoExclusao(false)}
+      />
     </div>
   )
 }
