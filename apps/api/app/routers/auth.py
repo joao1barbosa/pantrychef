@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import limitar_login
 from app.schemas.auth import Token
 from app.services.security import create_access_token
 from app.services.user import authenticate_user
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
     response_model=Token,
     summary="Autenticar usuário",
     description="Valida as credenciais e retorna um token JWT Bearer.",
+    dependencies=[Depends(limitar_login)],
 )
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
