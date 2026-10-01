@@ -83,3 +83,8 @@ limitar_ia = RateLimiter(
     limite=lambda: settings.RATE_LIMIT_IA,
     janela=lambda: settings.RATE_LIMIT_JANELA_SEGUNDOS,
 )
+limitar_cadastro = RateLimiter(
+    "cadastro",
+    limite=lambda: settings.RATE_LIMIT_CADASTRO,
+    janela=lambda: settings.RATE_LIMIT_CADASTRO_JANELA_SEGUNDOS,
+)

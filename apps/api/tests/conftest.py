@@ -47,6 +47,7 @@ os.environ.setdefault("JWT_EXPIRE_MINUTES", "60")
 os.environ.setdefault("AI_API_KEY", "test-key")
 os.environ.setdefault("RATE_LIMIT_LOGIN", "0")
 os.environ.setdefault("RATE_LIMIT_IA", "0")
+os.environ.setdefault("RATE_LIMIT_CADASTRO", "0")
 
 import pytest
 from fastapi.testclient import TestClient

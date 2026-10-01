@@ -28,6 +28,10 @@ class Settings:
     RATE_LIMIT_LOGIN: int = int(os.getenv("RATE_LIMIT_LOGIN", "10"))
     RATE_LIMIT_IA: int = int(os.getenv("RATE_LIMIT_IA", "15"))
     RATE_LIMIT_JANELA_SEGUNDOS: int = int(os.getenv("RATE_LIMIT_JANELA_SEGUNDOS", "60"))
+    RATE_LIMIT_CADASTRO: int = int(os.getenv("RATE_LIMIT_CADASTRO", "10"))
+    RATE_LIMIT_CADASTRO_JANELA_SEGUNDOS: int = int(
+        os.getenv("RATE_LIMIT_CADASTRO_JANELA_SEGUNDOS", "3600")
+    )
     CORS_ORIGINS: list[str] = [
         origem.strip()
         for origem in os.getenv(

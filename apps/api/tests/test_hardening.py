@@ -1,7 +1,7 @@
 import pytest
 
 from app.config import settings
-from app.dependencies import limitar_login
+from app.dependencies import limitar_cadastro, limitar_login
 
 
 def _auth(client, email="h@example.com", senha="senha123"):
@@ -140,3 +140,23 @@ def test_login_rate_limited(client, limite_login):
 
     assert [r.status_code for r in respostas] == [401, 401, 401, 429]
     assert "Retry-After" in respostas[-1].headers
+
+
+@pytest.fixture
+def limite_cadastro(monkeypatch):
+    monkeypatch.setattr(settings, "RATE_LIMIT_CADASTRO", 2)
+    limitar_cadastro.reset()
+    yield
+    limitar_cadastro.reset()
+
+
+def test_register_rate_limited(client, limite_cadastro):
+    codigos = [
+        client.post(
+            "/users",
+            json={"nome": "N", "email": f"spam{i}@example.com", "senha": "senha123"},
+        ).status_code
+        for i in range(3)
+    ]
+
+    assert codigos == [201, 201, 429]

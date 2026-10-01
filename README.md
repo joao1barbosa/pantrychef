@@ -140,7 +140,7 @@ sanitizada antes de ser salva.
 
 ### 7. Proteções básicas
 
-Limite de tentativas por IP no login e nas rotas que acionam IA (`HTTP 429` com
+Limite de tentativas por IP no login, no cadastro e nas rotas que acionam IA (`HTTP 429` com
 `Retry-After`), `JWT_SECRET` obrigatório com no mínimo 32 caracteres, e-mails sem
 distinção de maiúsculas e headers de segurança (CSP, `X-Frame-Options`...) no nginx.
 
@@ -209,7 +209,7 @@ distinção de maiúsculas e headers de segurança (CSP, `X-Frame-Options`...) n
 | `404` | Recurso não encontrado. |
 | `409` | E-mail já cadastrado. |
 | `422` | Validação (ex.: menos de 3 ingredientes, ingrediente inexistente ou repetido). |
-| `429` | Muitas tentativas em pouco tempo (login ou rotas de IA). |
+| `429` | Muitas tentativas em pouco tempo (login, cadastro ou rotas de IA). |
 | `503` | Serviço externo de geração de receitas indisponível. |
 
 ## Setup rápido (Docker)
@@ -305,7 +305,9 @@ configuradas.
 | `AI_MAX_TENTATIVAS` | não | Número de tentativas por geração (padrão `2`). |
 | `RATE_LIMIT_LOGIN` | não | Tentativas de login por IP na janela (padrão `10`; `0` desativa). |
 | `RATE_LIMIT_IA` | não | Buscas que podem acionar IA por IP na janela (padrão `15`; `0` desativa). |
-| `RATE_LIMIT_JANELA_SEGUNDOS` | não | Tamanho da janela dos limites (padrão `60`). |
+| `RATE_LIMIT_JANELA_SEGUNDOS` | não | Tamanho da janela dos limites de login e IA (padrão `60`). |
+| `RATE_LIMIT_CADASTRO` | não | Cadastros por IP na janela (padrão `10`; `0` desativa). |
+| `RATE_LIMIT_CADASTRO_JANELA_SEGUNDOS` | não | Janela do limite de cadastro (padrão `3600`). |
 | `CORS_ORIGINS` | não | Origens permitidas, separadas por vírgula (padrão: Vite em `:5173`). |
 | `SEED_INGREDIENTES` | não | Popula o catálogo de ingredientes ao subir a API (padrão `true`). |
 
