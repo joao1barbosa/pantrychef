@@ -13,6 +13,7 @@ import { fetchWithAuth, mensagemDeErro } from '@/lib/api'
 import { USUARIO_QUERY_KEY, useAuth } from '@/features/auth/hooks/use-auth'
 import type { Preferencias, Usuario } from '@/types'
 import { TagInput } from '../components/tag-input'
+import { ThemeSelector } from '@/shared/components/theme-toggle'
 
 const PREFERENCIAS_QUERY_KEY = ['users', 'me', 'preferences'] as const
 
@@ -237,6 +238,7 @@ export function ProfilePage() {
         <TabsList>
           <TabsTrigger value="usuario">Usuário</TabsTrigger>
           <TabsTrigger value="preferencias">Preferências</TabsTrigger>
+          <TabsTrigger value="aparencia">Aparência</TabsTrigger>
         </TabsList>
 
         <TabsContent value="usuario">
@@ -275,6 +277,20 @@ export function ProfilePage() {
               ) : (
                 <PreferenciasForm preferencias={preferencias} />
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="aparencia">
+          <Card className="rounded-[20px] border-foreground/10 p-5 shadow-none">
+            <CardHeader className="px-0 pt-0">
+              <CardTitle className="text-lg font-extrabold">Aparência</CardTitle>
+              <p className="text-sm text-foreground/70">
+                Escolha o tema do app. “Sistema” acompanha a configuração do seu aparelho.
+              </p>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              <ThemeSelector />
             </CardContent>
           </Card>
         </TabsContent>

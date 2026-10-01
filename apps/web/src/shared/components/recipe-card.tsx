@@ -35,7 +35,7 @@ export function RecipeCover({
   return (
     <div
       className={cn(
-        'relative overflow-hidden bg-gradient-to-br',
+        'relative overflow-hidden bg-gradient-to-br dark:brightness-[0.82]',
         CAPAS[indiceCapa(receita.categoria || receita.nome)],
         className,
       )}

@@ -229,7 +229,10 @@ export function FavoritosScreen({
           ))}
         </div>
 
-        <section aria-label="Receitas favoritas" className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <section
+          aria-label="Receitas favoritas"
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold" aria-live="polite">
               {visiveis.length === 1 ? '1 receita' : `${visiveis.length} receitas`}

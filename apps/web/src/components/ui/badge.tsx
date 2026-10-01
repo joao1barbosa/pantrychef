@@ -10,9 +10,9 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground [a]:hover:bg-primary/80',
-        terracota: 'bg-[#C0392B]/10 text-[#C0392B] border-[#C0392B]/20',
-        dourado: 'bg-[#D4943A]/10 text-[#D4943A] border-[#D4943A]/20',
-        verde: 'bg-[#5B7553]/10 text-[#5B7553] border-[#5B7553]/20',
+        terracota: 'bg-terracota/10 text-terracota border-terracota/20',
+        dourado: 'bg-dourado/10 text-dourado border-dourado/20',
+        verde: 'bg-verde/10 text-verde border-verde/20',
         secondary: 'bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80',
         destructive:
           'bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20',

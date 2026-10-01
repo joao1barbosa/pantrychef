@@ -4,6 +4,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 import { NAV_EXPLORAR, NAV_PRINCIPAL } from './nav-items'
+import { ThemeToggleButton } from './theme-toggle'
 
 function ItemNav({ to, icon: Icon, label, end }: (typeof NAV_PRINCIPAL)[number]) {
   return (
@@ -30,12 +31,15 @@ export function Sidebar() {
 
   return (
     <aside className="fixed top-0 bottom-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-card md:flex">
-      <Link to="/" className="flex items-center gap-3 border-b border-border px-6 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-terracota">
-          <ChefHat className="h-5 w-5 text-bege" />
-        </div>
-        <span className="text-lg font-bold text-foreground">PantryChef</span>
-      </Link>
+      <div className="flex items-center justify-between gap-2 border-b border-border py-5 pr-3 pl-6">
+        <Link to="/" className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-terracota">
+            <ChefHat className="h-5 w-5 text-bege" />
+          </div>
+          <span className="text-lg font-bold text-foreground">PantryChef</span>
+        </Link>
+        <ThemeToggleButton />
+      </div>
 
       <nav aria-label="Navegação principal" className="flex-1 overflow-y-auto px-3 py-4">
         <div className="space-y-1">

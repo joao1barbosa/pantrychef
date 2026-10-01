@@ -101,7 +101,7 @@ export function IngredientsPage() {
                         className={cn(
                           'flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary',
                           ativo
-                            ? 'border-verde bg-verde text-white'
+                            ? 'border-verde bg-verde text-white dark:text-marrom'
                             : 'border-foreground/15 hover:bg-foreground/5',
                         )}
                       >

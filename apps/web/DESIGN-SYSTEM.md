@@ -57,3 +57,13 @@ import { colors, spacing, typography, borderRadius } from '@/lib/design-tokens'
 Os componentes base ficam em `src/components/ui/` e os compostos do app em
 `src/shared/components/` (navegação, card de receita, diálogo de confirmação...).
 Para vê-los em uso, rode `npm run dev` e navegue pelas telas.
+
+## Alternância de tema (como funciona)
+
+- As cores da marca (`terracota`, `dourado`, `verde`) são variáveis CSS: no tema
+  escuro usam tons mais claros para manter o contraste sobre o marrom.
+- `public/theme-init.js` aplica a classe `.dark` no `<html>` antes da primeira
+  pintura (arquivo externo por causa da CSP, que bloqueia scripts inline).
+- `useTema()` (`src/lib/theme.ts`) guarda a preferência (`sistema`, `claro` ou
+  `escuro`) em `localStorage` e acompanha a configuração do sistema.
+- Controles: botão na sidebar (desktop) e aba **Aparência** no Perfil.

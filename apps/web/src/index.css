@@ -13,9 +13,9 @@
   /* === PantryChef Palette === */
   --color-marrom: #2c1810;
   --color-bege: #f5f0eb;
-  --color-terracota: #c0392b;
-  --color-dourado: #d4943a;
-  --color-verde: #5b7553;
+  --color-terracota: var(--terracota);
+  --color-dourado: var(--dourado);
+  --color-verde: var(--verde);
 
   /* === Semantic Colors (shadcn compatible) === */
   --color-background: var(--background);
@@ -73,6 +73,10 @@
 }
 
 :root {
+  color-scheme: light;
+  --terracota: #c0392b;
+  --dourado: #d4943a;
+  --verde: #5b7553;
   --background: #f5f0eb;
   --foreground: #2c1810;
   --card: #ffffff;
@@ -108,6 +112,11 @@
 }
 
 .dark {
+  color-scheme: dark;
+  /* Tons mais claros da paleta para manter contraste sobre o marrom */
+  --terracota: #e26a5d;
+  --dourado: #e3a95c;
+  --verde: #94b38a;
   --background: #2c1810;
   --foreground: #f5f0eb;
   --card: #3d2418;
@@ -122,7 +131,7 @@
   --muted-foreground: #b8a89a;
   --accent: #c0392b;
   --accent-foreground: #f5f0eb;
-  --destructive: #c0392b;
+  --destructive: #e26a5d;
   --border: rgba(245, 240, 235, 0.15);
   --input: rgba(245, 240, 235, 0.2);
   --ring: #d4943a;

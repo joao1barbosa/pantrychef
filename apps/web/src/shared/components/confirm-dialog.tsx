@@ -75,7 +75,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onConfirmar}
             disabled={carregando}
-            className="h-11 rounded-full bg-terracota px-5 font-bold text-bege hover:bg-terracota/90"
+            className="h-11 rounded-full bg-terracota px-5 font-bold text-bege hover:bg-terracota/90 dark:text-marrom"
           >
             {carregando ? 'Aguarde...' : confirmar}
           </Button>

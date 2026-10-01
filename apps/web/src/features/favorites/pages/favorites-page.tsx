@@ -54,7 +54,7 @@ export function FavoritesPage() {
       {alternar.isError && (
         <p
           role="alert"
-          className="fixed inset-x-4 bottom-24 z-50 rounded-xl bg-destructive px-4 py-3 text-sm text-white md:bottom-6 md:left-72"
+          className="fixed inset-x-4 bottom-24 z-50 rounded-xl bg-destructive px-4 py-3 text-sm text-white md:bottom-6 dark:text-marrom md:left-72"
         >
           {mensagemDeErro(alternar.error, 'Não foi possível remover o favorito. Tente novamente.')}
         </p>
