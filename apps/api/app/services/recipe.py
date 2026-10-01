@@ -14,6 +14,21 @@ from app.services.ingredient import get_or_create_ingrediente
 from app.utils.slug import slugify
 
 
+_DIFICULDADE_MAP = {
+    "facil": "facil", "fácil": "facil", "easy": "facil",
+    "medio": "medio", "médio": "medio", "media": "medio", "média": "medio", "medium": "medio",
+    "dificil": "dificil", "difícil": "dificil", "hard": "dificil",
+}
+
+
+def normalizar_dificuldade(valor: str | None) -> str | None:
+    """Normaliza a dificuldade retornada pela IA para o formato do schema."""
+    if valor is None:
+        return None
+    chave = valor.strip().lower()
+    return _DIFICULDADE_MAP.get(chave)  # retorna None se não reconhecer
+
+
 def _query_receitas(db: Session):
     return db.query(Receita).options(
         joinedload(Receita.itens).joinedload(ReceitaIngrediente.ingrediente)
@@ -264,7 +279,7 @@ def _persistir_receita_gerada(db: Session, gerada: dict) -> dict:
         modo_preparo=gerada["modo_preparo"],
         categoria=gerada.get("categoria"),
         tempo_preparo=gerada.get("tempo_preparo"),
-        dificuldade=gerada.get("dificuldade"),
+        dificuldade=normalizar_dificuldade(gerada.get("dificuldade")),
         ingredientes=ingredientes,
     )
     return criar_receita(db, receita)
