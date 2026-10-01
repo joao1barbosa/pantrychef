@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 interface Ingrediente {
   id: string
   nome: string
-  slug: string
+  slug?: string
 }
 
 interface ReceitaIngrediente {
@@ -72,11 +72,11 @@ export function HomePage() {
   }, [ingredientes, termo, selecionados])
 
   const searchMutation = useMutation({
-    mutationFn: (ids: string[]) =>
-      fetchWithAuth('/recipes/search', {
+    mutationFn: (nomes: string[]) =>
+      fetchWithAuth('/recipes/search-by-name', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ingredientes: ids }),
+        body: JSON.stringify({ ingredientes: nomes }),
       }) as Promise<Receita[]>,
     onSuccess: () => setBuscou(true),
   })
@@ -112,11 +112,26 @@ export function HomePage() {
     setTermo('')
   }
 
+  const adicionarLivre = () => {
+    const nome = termo.trim()
+    if (!nome) return
+    if (selecionados.some((s) => s.nome.toLowerCase() === nome.toLowerCase())) {
+      setTermo('')
+      return
+    }
+    const temporario: Ingrediente = {
+      id: `temp-${Date.now()}`,
+      nome,
+    }
+    setSelecionados((atual) => [...atual, temporario])
+    setTermo('')
+  }
+
   const remover = (id: string) => setSelecionados((atual) => atual.filter((s) => s.id !== id))
 
   const buscar = () => {
     if (!podeBuscar) return
-    searchMutation.mutate(selecionados.map((s) => s.id))
+    searchMutation.mutate(selecionados.map((s) => s.nome))
   }
 
   const limparFiltros = () => {
@@ -154,9 +169,10 @@ export function HomePage() {
             value={termo}
             onChange={(e) => setTermo(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && sugestoes.length > 0) {
+              if (e.key === 'Enter') {
                 e.preventDefault()
-                adicionar(sugestoes[0])
+                if (sugestoes.length > 0) adicionar(sugestoes[0])
+                else adicionarLivre()
               }
             }}
             placeholder="Buscar ingredientes (ex.: ovo, queijo...)"
@@ -164,7 +180,7 @@ export function HomePage() {
             className="w-full bg-transparent text-base text-foreground outline-none placeholder:text-foreground/60 [&::-webkit-search-cancel-button]:hidden"
           />
         </label>
-        {sugestoes.length > 0 && (
+        {sugestoes.length > 0 ? (
           <ul className="absolute inset-x-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-foreground/10 bg-card shadow-lg">
             {sugestoes.map((s) => (
               <li key={s.id}>
@@ -179,6 +195,19 @@ export function HomePage() {
               </li>
             ))}
           </ul>
+        ) : (
+          termo.trim() && (
+            <div className="absolute inset-x-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-foreground/10 bg-card shadow-lg">
+              <button
+                type="button"
+                onClick={adicionarLivre}
+                className="flex w-full items-center justify-between px-4 py-3 text-left text-[15px] font-medium outline-none hover:bg-foreground/5 focus-visible:bg-foreground/5"
+              >
+                Adicionar &ldquo;{termo.trim()}&rdquo;
+                <span className="text-sm text-foreground/50">adicionar</span>
+              </button>
+            </div>
+          )
         )}
       </div>
 
@@ -307,7 +336,11 @@ export function HomePage() {
         )}
         {estado === 'error' && (
           <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <p className="text-[15px] text-destructive">Erro ao buscar receitas. Tente novamente.</p>
+            <p className="text-[15px] text-destructive">
+              {searchMutation.error instanceof Error
+                ? searchMutation.error.message
+                : 'Erro ao buscar receitas. Tente novamente.'}
+            </p>
             <Button type="button" onClick={buscar}>
               Tentar de novo
             </Button>

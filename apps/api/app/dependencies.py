@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import Usuario
-from app.services.ai import generate_recipe
+from app.services.ai import generate_recipe, validate_and_normalize_ingredients
 from app.services.security import decode_access_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -65,3 +65,7 @@ def get_optional_user(
 
 def get_ai_generator() -> Callable[[list[str]], dict]:
     return generate_recipe
+
+
+def get_ai_validator() -> Callable[[list[str]], dict]:
+    return validate_and_normalize_ingredients

@@ -1,15 +1,21 @@
 from typing import Callable
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_ai_generator, get_current_user, get_optional_user
+from app.dependencies import (
+    get_ai_generator,
+    get_ai_validator,
+    get_current_user,
+    get_optional_user,
+)
 from app.models.user import Usuario
 from app.schemas.recipe import Dificuldade, RecipeCreate, RecipeOut
-from app.schemas.search import IngredientSearch
+from app.schemas.search import IngredientSearch, IngredientSearchByName
 from app.services.history import registrar_visualizacao
+from app.services.ingredient import get_or_create_ingrediente
 from app.services.recipe import (
     atualizar_receita,
     buscar_com_fallback_ia,
@@ -81,6 +87,36 @@ def search_recipes(
     gerar: Callable[[list[str]], dict] = Depends(get_ai_generator),
 ) -> list[RecipeOut]:
     return buscar_com_fallback_ia(db, data.ingredientes, gerar)
+
+
+@router.post(
+    "/search-by-name",
+    response_model=list[RecipeOut],
+    summary="Buscar receitas por nomes de ingredientes",
+    description="Aceita nomes de ingredientes em texto livre, valida via IA, e busca/gera receitas.",
+)
+def search_recipes_by_name(
+    data: IngredientSearchByName,
+    db: Session = Depends(get_db),
+    gerar: Callable[[list[str]], dict] = Depends(get_ai_generator),
+    validar: Callable[[list[str]], dict] = Depends(get_ai_validator),
+) -> list[RecipeOut]:
+    validacao = validar(data.ingredientes)
+
+    validos = validacao.get("validos", [])
+    invalidos = validacao.get("invalidos", [])
+    if len(validos) < 3:
+        detalhe = "Envie pelo menos 3 ingredientes válidos."
+        if invalidos:
+            detalhe += f" Inválidos: {', '.join(str(i) for i in invalidos)}"
+        raise HTTPException(status_code=422, detail=detalhe)
+
+    ingrediente_ids = []
+    for item in validos:
+        ing = get_or_create_ingrediente(db, item["normalizado"])
+        ingrediente_ids.append(ing.id)
+
+    return buscar_com_fallback_ia(db, ingrediente_ids, gerar)
 
 
 @router.get(
