@@ -45,7 +45,7 @@ pantrychef/
 │   │   ├── migrations/         # Versões do Alembic
 │   │   ├── tests/              # Suíte de testes (pytest)
 │   │   └── ...configs          # Dockerfile, alembic.ini, pytest.ini, requirements.txt
-│   └── web/                    # (placeholder) front-end
+│   └── web/                    # Frontend (React + Vite)
 ├── packages/
 │   └── shared-types/           # (placeholder) tipos compartilhados
 ├── db/                         # Dump inicial do banco
