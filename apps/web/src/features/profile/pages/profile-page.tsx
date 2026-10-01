@@ -129,7 +129,7 @@ export function ProfilePage() {
 
   if (isLoadingUser) {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pt-6 pb-6">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pt-6 pb-24 md:pb-6">
         <div className="h-8 w-40 animate-pulse rounded-lg bg-foreground/10" />
         <div className="h-10 w-64 animate-pulse rounded-full bg-foreground/10" />
         <div className="h-60 animate-pulse rounded-[20px] bg-foreground/10" />
@@ -294,15 +294,18 @@ export function ProfilePage() {
         </TabsContent>
       </Tabs>
 
-      <Button
-        type="button"
-        variant="outline"
-        onClick={logout}
-        className="h-12 rounded-full font-bold"
-      >
-        <LogOut className="size-5" />
-        Sair da conta
-      </Button>
+      {/* Sair da conta — fixo no mobile (acima da BottomNav), invisível no desktop (já tem na sidebar) */}
+      <div className="fixed right-0 bottom-16 left-0 z-40 border-t border-border bg-card p-4 md:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={logout}
+          className="h-12 w-full rounded-full font-bold"
+        >
+          <LogOut className="size-5" />
+          Sair da conta
+        </Button>
+      </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Heart, Clock, User, ChefHat, Mail, LogOut } from 'lucide-react'
+import { Home, Heart, Clock, User, ChefHat, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/features/auth/hooks/use-auth'
 
@@ -47,15 +47,13 @@ export function Sidebar() {
       {/* User card */}
       <div className="mt-auto border-t border-border p-4">
         <div className="flex items-center gap-3 rounded-xl bg-foreground/[0.04] px-3 py-2.5">
+          {/* Avatar placeholder — ícone do chapéu até implementação de upload de foto */}
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#C0392B]/10 text-[#C0392B]">
+            <ChefHat className="size-5" />
+          </span>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 text-sm font-medium truncate">
-              <User className="size-4 shrink-0 text-foreground/60" />
-              <span className="truncate">{user?.nome}</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-foreground/60 truncate">
-              <Mail className="size-3.5 shrink-0" />
-              <span className="truncate">{user?.email}</span>
-            </div>
+            <div className="text-sm font-medium truncate">{user?.nome}</div>
+            <div className="text-xs text-foreground/60 truncate">{user?.email}</div>
           </div>
           <button
             onClick={logout}
