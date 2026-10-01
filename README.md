@@ -76,7 +76,8 @@ pantrychef/
 │   │   ├── entrypoint.sh       # Aplica migrações e inicia o servidor
 │   │   ├── alembic.ini
 │   │   ├── pytest.ini
-│   │   └── requirements.txt
+│   │   ├── requirements.txt      # Dependências de produção
+│   │   └── requirements-dev.txt  # + ferramentas de teste
 │   └── web/                    # Frontend (React + Vite), servido por nginx no Docker
 │       ├── src/app/            # Rotas, layouts e providers
 │       ├── src/features/       # Telas por domínio (auth, recipes, favorites, history, profile)
@@ -367,7 +368,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml exec api pytest -
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -r apps/api/requirements.txt
+pip install -r apps/api/requirements-dev.txt
 export TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5433/pantrychef_test
 cd apps/api && pytest -q
 ```

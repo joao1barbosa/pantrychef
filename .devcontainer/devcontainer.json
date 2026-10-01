@@ -32,6 +32,6 @@
     }
   },
 
-  "postCreateCommand": "pip install -r apps/api/requirements.txt",
+  "postCreateCommand": "pip install -r apps/api/requirements-dev.txt",
   "remoteUser": "root"
 }
