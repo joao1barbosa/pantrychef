@@ -41,10 +41,6 @@ class RecipeCreate(RecipeBase):
         return ingredientes
 
 
-class RecipeUpdate(RecipeCreate):
-    pass
-
-
 class RecipeOut(RecipeBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -54,6 +50,3 @@ class RecipeOut(RecipeBase):
     gerada_por_ia: bool = False
     criado_em: datetime
     ingredientes: list[RecipeIngredientOut] = Field(default_factory=list)
-
-
-RecipeResponse = RecipeOut

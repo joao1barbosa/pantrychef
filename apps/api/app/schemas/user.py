@@ -36,10 +36,6 @@ class PreferencesBase(BaseModel):
     restricoes_alimentares: list[NonEmptyStr] = Field(default_factory=list)
 
 
-class PreferencesCreate(PreferencesBase):
-    pass
-
-
 class PreferencesUpdate(BaseModel):
     categorias_favoritas: list[NonEmptyStr] | None = Field(default=None, max_length=20)
     restricoes_alimentares: list[NonEmptyStr] | None = Field(default=None, max_length=20)

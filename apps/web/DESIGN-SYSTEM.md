@@ -54,10 +54,6 @@ import { colors, spacing, typography, borderRadius } from '@/lib/design-tokens'
 
 ## Visualização
 
-Para ver todos os componentes e variantes:
-
-```bash
-npm run dev
-```
-
-A página inicial exibe o ThemeShowcase com todos os elementos do design system.
+Os componentes base ficam em `src/components/ui/` e os compostos do app em
+`src/shared/components/` (navegação, card de receita, diálogo de confirmação...).
+Para vê-los em uso, rode `npm run dev` e navegue pelas telas.
