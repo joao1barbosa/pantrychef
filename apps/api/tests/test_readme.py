@@ -1,6 +1,7 @@
 from pathlib import Path
 
-_RAIZ_LOCAL = Path(__file__).resolve().parent.parent.parent
+_ARQUIVO = Path(__file__).resolve()
+_RAIZ_LOCAL = _ARQUIVO.parents[min(3, len(_ARQUIVO.parents) - 1)]
 _RAIZ_CONTAINER = Path("/workspaces/pantrychef")
 
 
