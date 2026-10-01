@@ -13,11 +13,21 @@ export function ThemeShowcase() {
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Cores</h2>
         <div className="grid grid-cols-5 gap-4">
-          <div className="h-20 rounded-lg bg-[#2C1810] flex items-center justify-center text-[#F5F0EB] text-xs">Marrom #2C1810</div>
-          <div className="h-20 rounded-lg bg-[#F5F0EB] flex items-center justify-center text-[#2C1810] text-xs border">Bege #F5F0EB</div>
-          <div className="h-20 rounded-lg bg-[#C0392B] flex items-center justify-center text-[#F5F0EB] text-xs">Terracota #C0392B</div>
-          <div className="h-20 rounded-lg bg-[#D4943A] flex items-center justify-center text-[#2C1810] text-xs">Dourado #D4943A</div>
-          <div className="h-20 rounded-lg bg-[#5B7553] flex items-center justify-center text-[#F5F0EB] text-xs">Verde #5B7553</div>
+          <div className="h-20 rounded-lg bg-[#2C1810] flex items-center justify-center text-[#F5F0EB] text-xs">
+            Marrom #2C1810
+          </div>
+          <div className="h-20 rounded-lg bg-[#F5F0EB] flex items-center justify-center text-[#2C1810] text-xs border">
+            Bege #F5F0EB
+          </div>
+          <div className="h-20 rounded-lg bg-[#C0392B] flex items-center justify-center text-[#F5F0EB] text-xs">
+            Terracota #C0392B
+          </div>
+          <div className="h-20 rounded-lg bg-[#D4943A] flex items-center justify-center text-[#2C1810] text-xs">
+            Dourado #D4943A
+          </div>
+          <div className="h-20 rounded-lg bg-[#5B7553] flex items-center justify-center text-[#F5F0EB] text-xs">
+            Verde #5B7553
+          </div>
         </div>
       </section>
 
@@ -87,7 +97,9 @@ export function ThemeShowcase() {
               <Label htmlFor="password">Senha</Label>
               <Input id="password" type="password" placeholder="••••••••" />
             </div>
-            <Button variant="terracota" className="w-full">Entrar</Button>
+            <Button variant="terracota" className="w-full">
+              Entrar
+            </Button>
           </CardContent>
         </Card>
       </section>
