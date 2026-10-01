@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 
 import { useQuery } from '@tanstack/react-query'
-import { BarChart3, Clock, History } from 'lucide-react'
+import { BarChart3, Clock, History, UtensilsCrossed } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/badge'
@@ -116,7 +116,14 @@ export function HistoryPage() {
                 size="sm"
                 className="relative h-full gap-2.5 rounded-[20px] border-foreground/10 p-1.5 shadow-none"
               >
-                <div className="h-[124px] overflow-hidden rounded-[15px] bg-foreground/10" aria-hidden />
+                <div className="relative h-[124px] overflow-hidden rounded-[15px] bg-foreground/10">
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 flex items-center justify-center text-foreground/20"
+                  >
+                    <UtensilsCrossed className="size-10" strokeWidth={1.25} />
+                  </div>
+                </div>
                 <div className="flex flex-col gap-2 px-2 pb-2.5">
                   {item.receita.categoria && (
                     <Badge

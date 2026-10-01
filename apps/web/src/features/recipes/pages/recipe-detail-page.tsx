@@ -193,8 +193,8 @@ export function RecipeDetailPage() {
   }
 
   const passos = receita.modo_preparo
-    .split(/\n+/)
-    .map((p) => p.replace(/^\s*\d+[.)-]\s*/, '').trim())
+    .split(/\s*\d+[.)-]\s+/)
+    .map((p) => p.trim())
     .filter(Boolean)
 
   return (

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { fetchWithAuth } from '@/lib/api'
 
 interface UserOut {
@@ -130,8 +131,8 @@ export function ProfilePage() {
     return (
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pt-6 pb-6">
         <div className="h-8 w-40 animate-pulse rounded-lg bg-foreground/10" />
-        <div className="h-40 animate-pulse rounded-[20px] bg-foreground/10" />
-        <div className="h-40 animate-pulse rounded-[20px] bg-foreground/10" />
+        <div className="h-10 w-64 animate-pulse rounded-full bg-foreground/10" />
+        <div className="h-60 animate-pulse rounded-[20px] bg-foreground/10" />
         <p className="sr-only">Carregando perfil...</p>
       </div>
     )
@@ -155,119 +156,143 @@ export function ProfilePage() {
         <p className="text-sm text-foreground/70">Gerencie sua conta</p>
       </header>
 
-      <Card className="rounded-[20px] border-foreground/10 p-5 shadow-none">
-        <CardHeader className="px-0 pt-0">
-          <div className="flex items-center gap-3">
-            <span className="flex size-12 items-center justify-center rounded-full bg-[#C0392B]/10 text-[#C0392B]">
-              <ChefHat className="size-6" />
-            </span>
-            <div>
-              <CardTitle className="text-lg font-extrabold">{user.nome}</CardTitle>
-              <p className="text-sm text-foreground/70">{user.email}</p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="px-0 pb-0">
-          <form onSubmit={handleSubmit((d) => profileMutation.mutate(d))} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome</Label>
-              <Input id="nome" {...register('nome')} />
-              {errors.nome && <p className="text-sm text-destructive">{errors.nome.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" value={user.email} disabled readOnly />
-              <p className="text-xs text-foreground/60">O email não pode ser alterado.</p>
-            </div>
-            {profileMutation.isError && (
-              <p className="text-sm text-destructive">
-                {profileMutation.error instanceof Error
-                  ? profileMutation.error.message
-                  : 'Erro ao atualizar perfil.'}
-              </p>
-            )}
-            {profileMutation.isSuccess && (
-              <p className="text-sm text-[#5B7553]">Perfil atualizado com sucesso!</p>
-            )}
-            <Button
-              type="submit"
-              variant="terracota"
-              className="h-11 rounded-full px-6 font-bold"
-              disabled={profileMutation.isPending}
-            >
-              {profileMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="usuario">
+        <TabsList>
+          <TabsTrigger value="usuario">Usuário</TabsTrigger>
+          <TabsTrigger value="preferencias">Preferências</TabsTrigger>
+        </TabsList>
 
-      <Card className="rounded-[20px] border-foreground/10 p-5 shadow-none">
-        <CardHeader className="px-0 pt-0">
-          <CardTitle className="text-lg font-extrabold">Preferências</CardTitle>
-          <p className="text-sm text-foreground/70">
-            Categorias favoritas e restrições alimentares (separadas por vírgula).
-          </p>
-        </CardHeader>
-        <CardContent className="px-0 pb-0">
-          {(preferences?.categorias_favoritas?.length ?? 0) > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2" aria-label="Categorias favoritas">
-              {(preferences?.categorias_favoritas ?? []).map((c) => (
-                <Badge key={c} variant="dourado" className="rounded-full px-3 py-1 text-xs font-bold">
-                  {c}
-                </Badge>
-              ))}
-            </div>
-          )}
-          {(preferences?.restricoes_alimentares?.length ?? 0) > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2" aria-label="Restrições alimentares">
-              {(preferences?.restricoes_alimentares ?? []).map((r) => (
-                <Badge key={r} variant="verde" className="rounded-full px-3 py-1 text-xs font-bold">
-                  {r}
-                </Badge>
-              ))}
-            </div>
-          )}
-          <form
-            onSubmit={handleSubmitPrefs((d) => prefsMutation.mutate(d))}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="categorias">Categorias favoritas</Label>
-              <Input
-                id="categorias"
-                placeholder="Ex.: massas, doces, saladas"
-                {...registerPrefs('categorias')}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="restricoes">Restrições alimentares</Label>
-              <Input
-                id="restricoes"
-                placeholder="Ex.: lactose, glúten"
-                {...registerPrefs('restricoes')}
-              />
-            </div>
-            {prefsMutation.isError && (
-              <p className="text-sm text-destructive">
-                {prefsMutation.error instanceof Error
-                  ? prefsMutation.error.message
-                  : 'Erro ao atualizar preferências.'}
+        <TabsContent value="usuario">
+          <Card className="rounded-[20px] border-foreground/10 p-5 shadow-none">
+            <CardHeader className="px-0 pt-0">
+              <div className="flex items-center gap-3">
+                <span className="flex size-12 items-center justify-center rounded-full bg-[#C0392B]/10 text-[#C0392B]">
+                  <ChefHat className="size-6" />
+                </span>
+                <div>
+                  <CardTitle className="text-lg font-extrabold">{user.nome}</CardTitle>
+                  <p className="text-sm text-foreground/70">{user.email}</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              <form
+                onSubmit={handleSubmit((d) => profileMutation.mutate(d))}
+                className="space-y-4"
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="nome">Nome</Label>
+                  <Input id="nome" {...register('nome')} />
+                  {errors.nome && (
+                    <p className="text-sm text-destructive">{errors.nome.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" value={user.email} disabled readOnly />
+                  <p className="text-xs text-foreground/60">O email não pode ser alterado.</p>
+                </div>
+                {profileMutation.isError && (
+                  <p className="text-sm text-destructive">
+                    {profileMutation.error instanceof Error
+                      ? profileMutation.error.message
+                      : 'Erro ao atualizar perfil.'}
+                  </p>
+                )}
+                {profileMutation.isSuccess && (
+                  <p className="text-sm text-[#5B7553]">Perfil atualizado com sucesso!</p>
+                )}
+                <Button
+                  type="submit"
+                  variant="terracota"
+                  className="h-11 rounded-full px-6 font-bold"
+                  disabled={profileMutation.isPending}
+                >
+                  {profileMutation.isPending ? 'Salvando...' : 'Salvar alterações'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="preferencias">
+          <Card className="rounded-[20px] border-foreground/10 p-5 shadow-none">
+            <CardHeader className="px-0 pt-0">
+              <CardTitle className="text-lg font-extrabold">Preferências</CardTitle>
+              <p className="text-sm text-foreground/70">
+                Categorias favoritas e restrições alimentares (separadas por vírgula).
               </p>
-            )}
-            {prefsMutation.isSuccess && (
-              <p className="text-sm text-[#5B7553]">Preferências atualizadas!</p>
-            )}
-            <Button
-              type="submit"
-              variant="outline"
-              className="h-11 rounded-full px-6 font-bold"
-              disabled={prefsMutation.isPending}
-            >
-              {prefsMutation.isPending ? 'Salvando...' : 'Salvar preferências'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              {(preferences?.categorias_favoritas?.length ?? 0) > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2" aria-label="Categorias favoritas">
+                  {(preferences?.categorias_favoritas ?? []).map((c) => (
+                    <Badge
+                      key={c}
+                      variant="dourado"
+                      className="rounded-full px-3 py-1 text-xs font-bold"
+                    >
+                      {c}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              {(preferences?.restricoes_alimentares?.length ?? 0) > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2" aria-label="Restrições alimentares">
+                  {(preferences?.restricoes_alimentares ?? []).map((r) => (
+                    <Badge
+                      key={r}
+                      variant="verde"
+                      className="rounded-full px-3 py-1 text-xs font-bold"
+                    >
+                      {r}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <form
+                onSubmit={handleSubmitPrefs((d) => prefsMutation.mutate(d))}
+                className="space-y-4"
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="categorias">Categorias favoritas</Label>
+                  <Input
+                    id="categorias"
+                    placeholder="Ex.: massas, doces, saladas"
+                    {...registerPrefs('categorias')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="restricoes">Restrições alimentares</Label>
+                  <Input
+                    id="restricoes"
+                    placeholder="Ex.: lactose, glúten"
+                    {...registerPrefs('restricoes')}
+                  />
+                </div>
+                {prefsMutation.isError && (
+                  <p className="text-sm text-destructive">
+                    {prefsMutation.error instanceof Error
+                      ? prefsMutation.error.message
+                      : 'Erro ao atualizar preferências.'}
+                  </p>
+                )}
+                {prefsMutation.isSuccess && (
+                  <p className="text-sm text-[#5B7553]">Preferências atualizadas!</p>
+                )}
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="h-11 rounded-full px-6 font-bold"
+                  disabled={prefsMutation.isPending}
+                >
+                  {prefsMutation.isPending ? 'Salvando...' : 'Salvar preferências'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Button
         type="button"
