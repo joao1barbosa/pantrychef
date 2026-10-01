@@ -92,3 +92,35 @@ def test_system_stays_up_after_ai_failure(client, db_session):
         assert client.get("/health").status_code == 200
     finally:
         app.dependency_overrides.pop(get_ai_generator, None)
+
+
+def test_ai_failures_are_logged_with_cause(caplog):
+    with caplog.at_level("WARNING", logger="app.services.ai"):
+        with pytest.raises(AIServiceUnavailable):
+            ai.validate_and_normalize_ingredients(
+                ["xpto"], client=_Client(_TimeoutCompletions())
+            )
+
+    mensagens = [r.getMessage() for r in caplog.records]
+    assert mensagens, "nenhuma falha registrada"
+    assert all("validação de ingredientes" in m for m in mensagens)
+    assert "TimeoutError: tempo esgotado" in mensagens[-1]
+
+
+class _AuthErrorCompletions:
+    def __init__(self):
+        self.calls = 0
+
+    def create(self, **kwargs):
+        self.calls += 1
+        erro = RuntimeError("API key expired.")
+        erro.status_code = 401
+        raise erro
+
+
+def test_ai_does_not_retry_permanent_client_errors(monkeypatch):
+    monkeypatch.setattr(ai.settings, "AI_MAX_TENTATIVAS", 3)
+    completions = _AuthErrorCompletions()
+    with pytest.raises(AIServiceUnavailable):
+        ai.generate_recipe(["Tomate", "Cebola", "Alho"], client=_Client(completions))
+    assert completions.calls == 1

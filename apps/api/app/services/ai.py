@@ -1,7 +1,10 @@
 import json
+import logging
 
 from app.config import settings
 from app.exceptions import AIServiceUnavailable
+
+logger = logging.getLogger(__name__)
 
 PROMPT = (
     "Você é um chef brasileiro. Crie uma receita usando APENAS os ingredientes informados.\n\n"
@@ -124,15 +127,34 @@ def _chamar_modelo(client, conteudo: str) -> dict:
     return _parse_receita(_extrair_texto(resposta))
 
 
+def _registrar_falha(operacao: str, tentativa: int, erro: Exception) -> None:
+    logger.warning(
+        "Falha na IA (%s), tentativa %d/%d: %s: %s",
+        operacao,
+        tentativa,
+        max(1, settings.AI_MAX_TENTATIVAS),
+        type(erro).__name__,
+        str(erro)[:300],
+    )
+
+
+def _erro_permanente(erro: Exception) -> bool:
+    status = getattr(erro, "status_code", None)
+    return isinstance(status, int) and 400 <= status < 500 and status != 429
+
+
 def generate_recipe(ingredientes: list[str], client=None) -> dict:
     client = client or _build_client()
     conteudo = PROMPT.format(ingredientes=_sanitizar(ingredientes))
     ultimo_erro: Exception | None = None
-    for _ in range(max(1, settings.AI_MAX_TENTATIVAS)):
+    for tentativa in range(1, max(1, settings.AI_MAX_TENTATIVAS) + 1):
         try:
             return _chamar_modelo(client, conteudo)
         except Exception as erro:
+            _registrar_falha("geração de receita", tentativa, erro)
             ultimo_erro = erro
+            if _erro_permanente(erro):
+                break
     raise AIServiceUnavailable(str(ultimo_erro)) from ultimo_erro
 
 
@@ -144,9 +166,12 @@ def validate_and_normalize_ingredients(ingredientes: list[str], client=None) -> 
     client = client or _build_client()
     conteudo = VALIDATE_PROMPT.format(ingredientes=_sanitizar(ingredientes))
     ultimo_erro: Exception | None = None
-    for _ in range(max(1, settings.AI_MAX_TENTATIVAS)):
+    for tentativa in range(1, max(1, settings.AI_MAX_TENTATIVAS) + 1):
         try:
             return _chamar_validacao(client, conteudo)
         except Exception as erro:
+            _registrar_falha("validação de ingredientes", tentativa, erro)
             ultimo_erro = erro
+            if _erro_permanente(erro):
+                break
     raise AIServiceUnavailable(str(ultimo_erro)) from ultimo_erro
