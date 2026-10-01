@@ -1,32 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { BarChart3, ChevronDown, Clock, Heart, Search, SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, Heart, Search, SlidersHorizontal } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { plural } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { RecipeCard } from '@/shared/components/recipe-card'
 
+import type { FavoritoView } from './dados'
 import {
-  RECEITAS_EXEMPLO,
-  REFEICOES,
-  rotuloDificuldade,
-  rotuloRefeicao,
-  type Receita,
-  type Refeicao,
-} from './dados'
-import { FILTROS_PADRAO, aplicarFiltros, contarFiltrosAtivos, normalizar, type Filtros } from './filtros'
+  FILTROS_PADRAO,
+  aplicarFiltros,
+  contarFiltrosAtivos,
+  normalizar,
+  type Filtros,
+} from './filtros'
 import { ChipOpcao, FiltrosAvancados } from './filtros-avancados'
 
 type Ordenacao = 'recentes' | 'rapidas' | 'nome'
 
 export interface FavoritosScreenProps {
-  /** Receitas favoritadas pelo usuário (normalmente vindas da API) */
-  receitas?: Receita[]
-  /** Chamado quando o usuário toca em um card */
-  onAbrirReceita?: (receita: Receita) => void
+  /** Favoritos do usuário (vindos da API) */
+  favoritos: FavoritoView[]
+  usuarioId?: string
   /** Chamado quando a remoção é confirmada (o aviso "Desfazer" some sem ser tocado) */
-  onRemoverFavorito?: (receita: Receita) => void
+  onRemoverFavorito?: (favorito: FavoritoView) => void
   /** Chamado ao aplicar filtros, útil para enviar à busca com IA */
   onFiltrosAplicados?: (filtros: Filtros) => void
   onDescobrir?: () => void
@@ -35,37 +33,30 @@ export interface FavoritosScreenProps {
 
 const DURACAO_AVISO_MS = 5000
 
-const BADGE_REFEICAO: Record<Refeicao, { variant: 'dourado' | 'terracota' | 'verde' | 'default'; className?: string }> = {
-  cafe: { variant: 'dourado' },
-  almoco: { variant: 'terracota' },
-  lanche: { variant: 'verde' },
-  jantar: { variant: 'default', className: 'bg-foreground text-background' },
-}
-
 export function FavoritosScreen({
-  receitas = RECEITAS_EXEMPLO,
-  onAbrirReceita,
+  favoritos,
+  usuarioId,
   onRemoverFavorito,
   onFiltrosAplicados,
   onDescobrir,
   className,
 }: FavoritosScreenProps) {
-  const [lista, setLista] = useState<Receita[]>(receitas)
+  const pendente = useRef<FavoritoView | null>(null)
+  const [lista, setLista] = useState<FavoritoView[]>(favoritos)
   // Sincroniza a cópia local (editável por remoção otimista/desfazer)
   // quando a lista vinda da API muda.
-  const [receitasAnteriores, setReceitasAnteriores] = useState(receitas)
-  if (receitasAnteriores !== receitas) {
-    setReceitasAnteriores(receitas)
-    setLista(receitas)
+  const [favoritosAnteriores, setFavoritosAnteriores] = useState(favoritos)
+  if (favoritosAnteriores !== favoritos) {
+    setFavoritosAnteriores(favoritos)
+    setLista(favoritos)
   }
   const [busca, setBusca] = useState('')
-  const [refeicao, setRefeicao] = useState<Refeicao | 'todas'>('todas')
+  const [categoria, setCategoria] = useState<string>('todas')
   const [ordenacao, setOrdenacao] = useState<Ordenacao>('recentes')
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_PADRAO)
   const [filtrosAbertos, setFiltrosAbertos] = useState(false)
-  const [removida, setRemovida] = useState<{ receita: Receita; indice: number } | null>(null)
+  const [removida, setRemovida] = useState<{ favorito: FavoritoView; indice: number } | null>(null)
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pendente = useRef<Receita | null>(null)
   const onRemoverRef = useRef(onRemoverFavorito)
 
   useEffect(() => {
@@ -87,12 +78,12 @@ export function FavoritosScreen({
     pendente.current = null
   }
 
-  const removerFavorito = (receita: Receita) => {
+  const removerFavorito = (favorito: FavoritoView) => {
     confirmarRemocaoPendente()
-    const indice = lista.findIndex((r) => r.id === receita.id)
-    setLista((atual) => atual.filter((r) => r.id !== receita.id))
-    setRemovida({ receita, indice })
-    pendente.current = receita
+    const indice = lista.findIndex((f) => f.receita.id === favorito.receita.id)
+    setLista((atual) => atual.filter((f) => f.receita.id !== favorito.receita.id))
+    setRemovida({ favorito, indice })
+    pendente.current = favorito
     temporizador.current = setTimeout(() => {
       confirmarRemocaoPendente()
       setRemovida(null)
@@ -105,9 +96,9 @@ export function FavoritosScreen({
     temporizador.current = null
     pendente.current = null
     setLista((atual) => {
-      if (atual.some((r) => r.id === removida.receita.id)) return atual
+      if (atual.some((f) => f.receita.id === removida.favorito.receita.id)) return atual
       const nova = [...atual]
-      nova.splice(Math.min(removida.indice, nova.length), 0, removida.receita)
+      nova.splice(Math.min(removida.indice, nova.length), 0, removida.favorito)
       return nova
     })
     setRemovida(null)
@@ -117,22 +108,30 @@ export function FavoritosScreen({
   const termo = normalizar(busca)
 
   const base = useMemo(() => {
-    const porBusca = termo ? lista.filter((r) => normalizar(r.nome).includes(termo)) : lista
+    const porBusca = termo ? lista.filter((f) => normalizar(f.receita.nome).includes(termo)) : lista
     return aplicarFiltros(porBusca, filtros)
   }, [lista, termo, filtros])
 
   const visiveis = useMemo(() => {
-    const filtradas = refeicao === 'todas' ? base : base.filter((r) => r.refeicao === refeicao)
+    const filtradas =
+      categoria === 'todas' ? base : base.filter((f) => f.receita.categoria === categoria)
     return [...filtradas].sort((a, b) => {
-      if (ordenacao === 'rapidas') return a.tempoMinutos - b.tempoMinutos
-      if (ordenacao === 'nome') return a.nome.localeCompare(b.nome, 'pt-BR')
-      return b.salvaEm.localeCompare(a.salvaEm)
+      if (ordenacao === 'rapidas')
+        return (a.receita.tempo_preparo ?? Infinity) - (b.receita.tempo_preparo ?? Infinity)
+      if (ordenacao === 'nome') return a.receita.nome.localeCompare(b.receita.nome, 'pt-BR')
+      return b.salvoEm.localeCompare(a.salvoEm)
     })
-  }, [base, refeicao, ordenacao])
+  }, [base, categoria, ordenacao])
 
-  const chips = [{ id: 'todas' as const, label: 'Todos' }, ...REFEICOES].map((c) => ({
+  const categorias = [
+    ...new Set(lista.map((f) => f.receita.categoria).filter((c): c is string => !!c)),
+  ].sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  const chips = [
+    { id: 'todas', label: 'Todos' },
+    ...categorias.map((c) => ({ id: c, label: c })),
+  ].map((c) => ({
     ...c,
-    total: c.id === 'todas' ? base.length : base.filter((r) => r.refeicao === c.id).length,
+    total: c.id === 'todas' ? base.length : base.filter((f) => f.receita.categoria === c.id).length,
   }))
 
   const vazio = (() => {
@@ -154,11 +153,10 @@ export function FavoritosScreen({
         texto: 'Tente remover alguns filtros para ver mais receitas.',
         acao: { label: 'Limpar filtros', onClick: () => setFiltros(FILTROS_PADRAO) },
       }
-    const nome = refeicao === 'todas' ? '' : rotuloRefeicao(refeicao)
     return {
-      titulo: `Nenhum favorito em ${nome}`,
-      texto: `Descubra receitas de ${nome.toLowerCase()} e salve as que você gostar.`,
-      acao: { label: 'Descobrir receitas', onClick: () => onDescobrir?.() },
+      titulo: `Nenhum favorito em ${categoria}`,
+      texto: 'Escolha outra categoria ou descubra novas receitas.',
+      acao: { label: 'Ver todos', onClick: () => setCategoria('todas') },
     }
   })()
 
@@ -169,7 +167,7 @@ export function FavoritosScreen({
       className={cn(
         // Altura compensa o BottomNav fixo do MainLayout (h-16 + pb-20);
         // no desktop (sidebar, sem bottom nav) ocupa a viewport cheia.
-        'relative mx-auto flex h-[calc(100dvh-5rem)] w-full max-w-md flex-col overflow-hidden bg-background text-foreground md:h-dvh',
+        'relative mx-auto flex h-[calc(100dvh-5rem)] w-full max-w-3xl flex-col overflow-hidden bg-background text-foreground md:h-dvh',
         className,
       )}
     >
@@ -178,7 +176,7 @@ export function FavoritosScreen({
           <div className="flex flex-col gap-1">
             <h1 className="text-[34px] leading-none font-extrabold tracking-tight">Favoritos</h1>
             <p className="text-sm text-foreground/70">
-              {totalSalvas === 1 ? '1 receita salva' : `${totalSalvas} receitas salvas`}
+              {plural(totalSalvas, 'receita salva', 'receitas salvas')}
             </p>
           </div>
 
@@ -215,14 +213,14 @@ export function FavoritosScreen({
 
         <div
           role="group"
-          aria-label="Filtrar por refeição"
+          aria-label="Filtrar por categoria"
           className="flex shrink-0 gap-2 overflow-x-auto px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {chips.map((c) => (
             <ChipOpcao
               key={c.id}
-              selecionado={refeicao === c.id}
-              onClick={() => setRefeicao(c.id)}
+              selecionado={categoria === c.id}
+              onClick={() => setCategoria(c.id)}
               className="[&>svg]:hidden"
             >
               {c.label}
@@ -243,22 +241,39 @@ export function FavoritosScreen({
                 onChange={(e) => setOrdenacao(e.target.value as Ordenacao)}
                 className="h-11 cursor-pointer appearance-none rounded-lg bg-transparent pr-6 pl-2 text-right font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <option value="recentes" className="bg-background text-foreground">Mais recentes</option>
-                <option value="rapidas" className="bg-background text-foreground">Mais rápidas</option>
-                <option value="nome" className="bg-background text-foreground">Nome (A–Z)</option>
+                <option value="recentes" className="bg-background text-foreground">
+                  Mais recentes
+                </option>
+                <option value="rapidas" className="bg-background text-foreground">
+                  Mais rápidas
+                </option>
+                <option value="nome" className="bg-background text-foreground">
+                  Nome (A–Z)
+                </option>
               </select>
               <ChevronDown className="pointer-events-none absolute right-0 size-[18px]" />
             </label>
           </div>
 
           {visiveis.length > 0 ? (
-            <ul className="grid grid-cols-2 gap-3">
-              {visiveis.map((receita) => (
-                <li key={receita.id}>
-                  <CardReceita
-                    receita={receita}
-                    onAbrir={() => onAbrirReceita?.(receita)}
-                    onRemover={() => removerFavorito(receita)}
+            <ul className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+              {visiveis.map((favorito) => (
+                <li key={favorito.receita.id}>
+                  <RecipeCard
+                    receita={favorito.receita}
+                    usuarioId={usuarioId}
+                    acao={
+                      <button
+                        type="button"
+                        aria-label={`Remover ${favorito.receita.nome} dos favoritos`}
+                        onClick={() => removerFavorito(favorito)}
+                        className="group flex size-11 items-center justify-center rounded-full outline-none"
+                      >
+                        <span className="flex size-[34px] items-center justify-center rounded-full bg-[#FFFBF7]/95 text-[#C0392B] shadow-sm transition-transform group-active:scale-90 group-focus-visible:ring-2 group-focus-visible:ring-primary">
+                          <Heart fill="currentColor" className="size-[19px]" />
+                        </span>
+                      </button>
+                    }
                   />
                 </li>
               ))}
@@ -269,7 +284,9 @@ export function FavoritosScreen({
                 <Heart className="size-8" />
               </span>
               <h2 className="text-xl leading-tight font-bold">{vazio.titulo}</h2>
-              <p className="max-w-[280px] text-[15px] leading-relaxed text-foreground/70">{vazio.texto}</p>
+              <p className="max-w-[280px] text-[15px] leading-relaxed text-foreground/70">
+                {vazio.texto}
+              </p>
               <Button
                 type="button"
                 onClick={vazio.acao.onClick}
@@ -311,83 +328,5 @@ export function FavoritosScreen({
         />
       )}
     </div>
-  )
-}
-
-function CardReceita({
-  receita,
-  onAbrir,
-  onRemover,
-}: {
-  receita: Receita
-  onAbrir: () => void
-  onRemover: () => void
-}) {
-  const [imagemFalhou, setImagemFalhou] = useState(false)
-  const badge = BADGE_REFEICAO[receita.refeicao]
-
-  return (
-    <Card
-      size="sm"
-      className="relative h-full gap-2.5 rounded-[20px] border-foreground/10 p-1.5 shadow-none"
-    >
-      <div className="relative h-[124px] overflow-hidden rounded-[15px] bg-foreground/10">
-        {!imagemFalhou && (
-          <img
-            src={receita.imagem}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onError={() => setImagemFalhou(true)}
-            className="size-full object-cover"
-          />
-        )}
-        {receita.origem === 'minha' && (
-          <Badge variant="verde" className="absolute top-2.5 left-2.5 h-6 rounded-full px-2.5 text-[11px] font-bold">
-            Sua receita
-          </Badge>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-2 px-2 pb-2.5">
-        <Badge
-          variant={badge.variant}
-          className={cn('h-[22px] rounded-full px-2 text-[11px] font-bold', badge.className)}
-        >
-          {rotuloRefeicao(receita.refeicao)}
-        </Badge>
-        <h3 className="min-h-[39px] text-base leading-tight font-bold">
-          {/* O botão cobre o card inteiro para abrir a receita */}
-          <button
-            type="button"
-            onClick={onAbrir}
-            className="text-left outline-none after:absolute after:inset-0 after:rounded-[20px] focus-visible:after:ring-2 focus-visible:after:ring-primary"
-          >
-            {receita.nome}
-          </button>
-        </h3>
-        <div className="flex gap-3 text-[13px] text-foreground/70">
-          <span className="flex items-center gap-1">
-            <Clock className="size-[15px]" />
-            {receita.tempoMinutos} min
-          </span>
-          <span className="flex items-center gap-1">
-            <BarChart3 className="size-[15px]" />
-            {rotuloDificuldade(receita.dificuldade)}
-          </span>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        aria-label={`Remover ${receita.nome} dos favoritos`}
-        onClick={onRemover}
-        className="group absolute top-2 right-2 z-10 flex size-11 items-center justify-center rounded-full outline-none"
-      >
-        <span className="flex size-[34px] items-center justify-center rounded-full bg-[#FFFBF7]/95 text-[#C0392B] shadow-sm transition-transform group-active:scale-90 group-focus-visible:ring-2 group-focus-visible:ring-primary dark:bg-[#F5F0EB]/95">
-          <Heart fill="currentColor" className="size-[19px]" />
-        </span>
-      </button>
-    </Card>
   )
 }

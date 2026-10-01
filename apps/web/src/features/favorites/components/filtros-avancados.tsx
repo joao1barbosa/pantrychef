@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 
-import { ArrowLeft, Check, Minus, Plus, Refrigerator, X } from 'lucide-react'
+import { ArrowLeft, Check, Minus, Plus, X } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
-import { DIFICULDADES, REFEICOES, RESTRICOES } from './dados'
+import { DIFICULDADES } from '@/lib/format'
+
+import { ORIGENS } from './dados'
 import {
   FILTROS_PADRAO,
   TEMPO_MINIMO,
@@ -26,8 +27,6 @@ export interface FiltrosAvancadosProps {
   className?: string
 }
 
-const PORCOES_MAXIMAS = 12
-
 export function FiltrosAvancados({
   valorInicial = FILTROS_PADRAO,
   onAplicar,
@@ -44,9 +43,6 @@ export function FiltrosAvancados({
 
   const atualizar = <K extends keyof Filtros>(chave: K, valor: Filtros[K]) =>
     setRascunho((atual) => ({ ...atual, [chave]: valor }))
-
-  const alternar = <T extends string>(lista: T[], item: T) =>
-    lista.includes(item) ? lista.filter((x) => x !== item) : [...lista, item]
 
   const adicionarIngrediente = (destino: 'incluir' | 'evitar') => {
     const nome = ingrediente.trim().toLowerCase()
@@ -112,20 +108,6 @@ export function FiltrosAvancados({
       </header>
 
       <main className="flex flex-1 flex-col gap-7 overflow-y-auto px-4 pt-2 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Secao titulo="Refeição" ajuda="Escolha uma ou mais">
-          <div className="flex flex-wrap gap-2">
-            {REFEICOES.map((r) => (
-              <ChipOpcao
-                key={r.id}
-                selecionado={rascunho.refeicoes.includes(r.id)}
-                onClick={() => atualizar('refeicoes', alternar(rascunho.refeicoes, r.id))}
-              >
-                {r.label}
-              </ChipOpcao>
-            ))}
-          </div>
-        </Secao>
-
         <section className="flex flex-col gap-1">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-[17px] font-bold">Tempo de preparo</h2>
@@ -155,29 +137,12 @@ export function FiltrosAvancados({
           <Segmentado
             rotulo="Dificuldade"
             valor={rascunho.dificuldade}
-            opcoes={[{ id: 'qualquer', label: 'Qualquer' }, ...DIFICULDADES]}
+            opcoes={[{ id: 'qualquer' as const, label: 'Qualquer' }, ...DIFICULDADES]}
             onChange={(v) => atualizar('dificuldade', v)}
           />
         </Secao>
 
         <Secao titulo="Ingredientes">
-          <Card size="sm" className="flex-row items-center gap-3 rounded-[18px] border-foreground/10 py-3 pr-3 pl-3.5 shadow-none">
-            <span className="flex size-[42px] shrink-0 items-center justify-center rounded-[13px] bg-[#5B7553]/15 text-[#4A6243] dark:bg-[#5B7553]/35 dark:text-[#BFD2B8]">
-              <Refrigerator className="size-[22px]" />
-            </span>
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-[15px] font-bold">Usar o que tenho na geladeira</span>
-              <span className="text-[13px] leading-snug text-foreground/70">
-                A IA prioriza receitas com os seus ingredientes
-              </span>
-            </div>
-            <Interruptor
-              rotulo="Usar o que tenho na geladeira"
-              ligado={rascunho.usarGeladeira}
-              onChange={(v) => atualizar('usarGeladeira', v)}
-            />
-          </Card>
-
           <div className="flex gap-2">
             <label className="flex h-12 min-w-0 flex-1 items-center rounded-[14px] bg-foreground/[0.07] px-3.5 focus-within:ring-2 focus-within:ring-primary">
               <span className="sr-only">Nome do ingrediente</span>
@@ -217,76 +182,32 @@ export function FiltrosAvancados({
             vazio="Nenhum ingrediente adicionado"
             itens={rascunho.incluir}
             tom="incluir"
-            onRemover={(nome) => atualizar('incluir', rascunho.incluir.filter((x) => x !== nome))}
+            onRemover={(nome) =>
+              atualizar(
+                'incluir',
+                rascunho.incluir.filter((x) => x !== nome),
+              )
+            }
           />
           <ListaIngredientes
             titulo="Sem estes ingredientes"
             vazio="Nenhum ingrediente a evitar"
             itens={rascunho.evitar}
             tom="evitar"
-            onRemover={(nome) => atualizar('evitar', rascunho.evitar.filter((x) => x !== nome))}
+            onRemover={(nome) =>
+              atualizar(
+                'evitar',
+                rascunho.evitar.filter((x) => x !== nome),
+              )
+            }
           />
         </Secao>
-
-        <Secao titulo="Restrições alimentares">
-          <div className="flex flex-wrap gap-2">
-            {RESTRICOES.map((r) => (
-              <ChipOpcao
-                key={r.id}
-                selecionado={rascunho.restricoes.includes(r.id)}
-                onClick={() => atualizar('restricoes', alternar(rascunho.restricoes, r.id))}
-              >
-                {r.label}
-              </ChipOpcao>
-            ))}
-          </div>
-        </Secao>
-
-        <section className="flex items-center justify-between gap-4">
-          <div className="flex flex-col gap-0.5">
-            <h2 className="text-[17px] font-bold">Porções</h2>
-            <span className="text-[13px] text-foreground/70">Rende pelo menos</span>
-          </div>
-          <div className="flex items-center gap-1 rounded-full bg-foreground/[0.07] p-[3px]">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Diminuir porções"
-              disabled={rascunho.porcoesMinimas <= 1}
-              onClick={() => atualizar('porcoesMinimas', Math.max(1, rascunho.porcoesMinimas - 1))}
-              className="size-11 rounded-full bg-card [&_svg]:size-[18px]"
-            >
-              <Minus />
-            </Button>
-            <span aria-live="polite" className="min-w-10 text-center text-[19px] font-bold">
-              {rascunho.porcoesMinimas}
-            </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Aumentar porções"
-              disabled={rascunho.porcoesMinimas >= PORCOES_MAXIMAS}
-              onClick={() =>
-                atualizar('porcoesMinimas', Math.min(PORCOES_MAXIMAS, rascunho.porcoesMinimas + 1))
-              }
-              className="size-11 rounded-full bg-card [&_svg]:size-[18px]"
-            >
-              <Plus />
-            </Button>
-          </div>
-        </section>
 
         <Secao titulo="Origem da receita">
           <Segmentado
             rotulo="Origem da receita"
             valor={rascunho.origem}
-            opcoes={[
-              { id: 'todas', label: 'Todas' },
-              { id: 'comunidade', label: 'Comunidade' },
-              { id: 'minha', label: 'Minhas' },
-            ]}
+            opcoes={[{ id: 'todas', label: 'Todas' }, ...ORIGENS]}
             onChange={(v) => atualizar('origem', v)}
           />
         </Secao>
@@ -314,7 +235,15 @@ export function FiltrosAvancados({
   )
 }
 
-function Secao({ titulo, ajuda, children }: { titulo: string; ajuda?: string; children: ReactNode }) {
+function Secao({
+  titulo,
+  ajuda,
+  children,
+}: {
+  titulo: string
+  ajuda?: string
+  children: ReactNode
+}) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-3">
@@ -345,7 +274,8 @@ export function ChipOpcao({
       onClick={onClick}
       className={cn(
         'h-11 shrink-0 gap-1.5 rounded-full px-4 text-sm font-semibold shadow-none',
-        !selecionado && 'border-foreground/20 bg-transparent text-foreground hover:bg-foreground/5 hover:text-foreground',
+        !selecionado &&
+          'border-foreground/20 bg-transparent text-foreground hover:bg-foreground/5 hover:text-foreground',
         className,
       )}
     >
@@ -391,41 +321,6 @@ function Segmentado<T extends string>({
         )
       })}
     </div>
-  )
-}
-
-function Interruptor({
-  rotulo,
-  ligado,
-  onChange,
-}: {
-  rotulo: string
-  ligado: boolean
-  onChange: (v: boolean) => void
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={ligado}
-      aria-label={rotulo}
-      onClick={() => onChange(!ligado)}
-      className="flex h-11 w-14 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary"
-    >
-      <span
-        className={cn(
-          'flex h-8 w-[52px] items-center rounded-full border-2 px-1 transition-colors',
-          ligado ? 'justify-end border-primary bg-primary' : 'justify-start border-foreground/45 bg-foreground/[0.07]',
-        )}
-      >
-        <span
-          className={cn(
-            'rounded-full transition-all',
-            ligado ? 'size-[22px] bg-primary-foreground' : 'size-4 bg-foreground/45',
-          )}
-        />
-      </span>
-    </button>
   )
 }
 
