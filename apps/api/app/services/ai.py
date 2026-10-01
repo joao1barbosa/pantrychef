@@ -1,7 +1,13 @@
 import json
+import logging
+from concurrent.futures import ThreadPoolExecutor, wait
 
 from app.config import settings
 from app.exceptions import AIServiceUnavailable
+
+logger = logging.getLogger(__name__)
+
+_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="ia")
 
 PROMPT = (
     "Você é um chef brasileiro. Crie uma receita usando APENAS os ingredientes informados.\n\n"
@@ -48,7 +54,33 @@ def _build_client():
 
 
 def _extrair_texto(resposta) -> str:
-    return resposta.choices[0].message.content
+    escolha = resposta.choices[0]
+    texto = escolha.message.content
+    if not texto or not texto.strip():
+        motivo = getattr(escolha, "finish_reason", None)
+        raise ValueError(f"resposta sem conteúdo (finish_reason={motivo})")
+    return texto
+
+
+def _completar(client, conteudo: str):
+    """Chama o modelo com prazo total por tentativa.
+
+    O timeout do cliente HTTP vale por etapa (conexão/leitura) e não limita uma
+    resposta que chega devagar; o prazo aqui cobre a chamada inteira.
+    """
+    futuro = _executor.submit(
+        client.chat.completions.create,
+        model=settings.AI_MODEL,
+        max_tokens=settings.AI_MAX_TOKENS,
+        timeout=settings.AI_TIMEOUT,
+        extra_body={"reasoning": {"effort": "low", "exclude": True}},
+        messages=[{"role": "user", "content": conteudo}],
+    )
+    concluidos, _ = wait([futuro], timeout=settings.AI_TIMEOUT)
+    if not concluidos:
+        futuro.cancel()
+        raise TimeoutError(f"sem resposta em {settings.AI_TIMEOUT:g}s")
+    return futuro.result()
 
 
 def _parse_receita(texto: str) -> dict:
@@ -74,12 +106,12 @@ def _parse_receita(texto: str) -> dict:
 
 
 def _limpar_json(texto: str) -> str:
+    """Extrai o objeto JSON mesmo com cercas de código ou texto ao redor."""
     texto = texto.strip()
-    if texto.startswith("```"):
-        linhas = texto.splitlines()
-        linhas = [l for l in linhas if not l.strip().startswith("```")]
-        texto = "\n".join(linhas).strip()
-    return texto
+    inicio, fim = texto.find("{"), texto.rfind("}")
+    if inicio == -1 or fim <= inicio:
+        raise ValueError("resposta sem objeto JSON")
+    return texto[inicio : fim + 1]
 
 
 def _parse_validacao(texto: str) -> dict:
@@ -105,34 +137,41 @@ def _parse_validacao(texto: str) -> dict:
 
 
 def _chamar_validacao(client, conteudo: str) -> dict:
-    resposta = client.chat.completions.create(
-        model=settings.AI_MODEL,
-        max_tokens=1024,
-        timeout=settings.AI_TIMEOUT,
-        messages=[{"role": "user", "content": conteudo}],
-    )
-    return _parse_validacao(_extrair_texto(resposta))
+    return _parse_validacao(_extrair_texto(_completar(client, conteudo)))
 
 
 def _chamar_modelo(client, conteudo: str) -> dict:
-    resposta = client.chat.completions.create(
-        model=settings.AI_MODEL,
-        max_tokens=1024,
-        timeout=settings.AI_TIMEOUT,
-        messages=[{"role": "user", "content": conteudo}],
+    return _parse_receita(_extrair_texto(_completar(client, conteudo)))
+
+
+def _registrar_falha(operacao: str, tentativa: int, erro: Exception) -> None:
+    logger.warning(
+        "Falha na IA (%s), tentativa %d/%d: %s: %s",
+        operacao,
+        tentativa,
+        max(1, settings.AI_MAX_TENTATIVAS),
+        type(erro).__name__,
+        str(erro)[:300],
     )
-    return _parse_receita(_extrair_texto(resposta))
+
+
+def _erro_permanente(erro: Exception) -> bool:
+    status = getattr(erro, "status_code", None)
+    return isinstance(status, int) and 400 <= status < 500 and status != 429
 
 
 def generate_recipe(ingredientes: list[str], client=None) -> dict:
     client = client or _build_client()
     conteudo = PROMPT.format(ingredientes=_sanitizar(ingredientes))
     ultimo_erro: Exception | None = None
-    for _ in range(max(1, settings.AI_MAX_TENTATIVAS)):
+    for tentativa in range(1, max(1, settings.AI_MAX_TENTATIVAS) + 1):
         try:
             return _chamar_modelo(client, conteudo)
         except Exception as erro:
+            _registrar_falha("geração de receita", tentativa, erro)
             ultimo_erro = erro
+            if _erro_permanente(erro):
+                break
     raise AIServiceUnavailable(str(ultimo_erro)) from ultimo_erro
 
 
@@ -144,9 +183,12 @@ def validate_and_normalize_ingredients(ingredientes: list[str], client=None) -> 
     client = client or _build_client()
     conteudo = VALIDATE_PROMPT.format(ingredientes=_sanitizar(ingredientes))
     ultimo_erro: Exception | None = None
-    for _ in range(max(1, settings.AI_MAX_TENTATIVAS)):
+    for tentativa in range(1, max(1, settings.AI_MAX_TENTATIVAS) + 1):
         try:
             return _chamar_validacao(client, conteudo)
         except Exception as erro:
+            _registrar_falha("validação de ingredientes", tentativa, erro)
             ultimo_erro = erro
+            if _erro_permanente(erro):
+                break
     raise AIServiceUnavailable(str(ultimo_erro)) from ultimo_erro

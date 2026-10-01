@@ -28,3 +28,11 @@ def test_seed_is_idempotent(db_session):
     seed_ingredientes(db_session)
     second = db_session.query(Ingrediente).count()
     assert first == second
+
+
+def test_new_ingredient_name_is_capitalized(db_session):
+    from app.services.ingredient import get_or_create_ingrediente
+
+    ingrediente = get_or_create_ingrediente(db_session, "  salsicha   de frango ")
+    assert ingrediente.nome == "Salsicha de frango"
+    assert get_or_create_ingrediente(db_session, "Salsicha de Frango").id == ingrediente.id

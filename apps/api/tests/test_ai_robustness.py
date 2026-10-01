@@ -14,6 +14,7 @@ class _Message:
 class _Choice:
     def __init__(self, content):
         self.message = _Message(content)
+        self.finish_reason = "stop"
 
 
 class _Resp:
@@ -92,3 +93,104 @@ def test_system_stays_up_after_ai_failure(client, db_session):
         assert client.get("/health").status_code == 200
     finally:
         app.dependency_overrides.pop(get_ai_generator, None)
+
+
+def test_ai_failures_are_logged_with_cause(caplog):
+    with caplog.at_level("WARNING", logger="app.services.ai"):
+        with pytest.raises(AIServiceUnavailable):
+            ai.validate_and_normalize_ingredients(
+                ["xpto"], client=_Client(_TimeoutCompletions())
+            )
+
+    mensagens = [r.getMessage() for r in caplog.records]
+    assert mensagens, "nenhuma falha registrada"
+    assert all("validação de ingredientes" in m for m in mensagens)
+    assert "TimeoutError: tempo esgotado" in mensagens[-1]
+
+
+class _AuthErrorCompletions:
+    def __init__(self):
+        self.calls = 0
+
+    def create(self, **kwargs):
+        self.calls += 1
+        erro = RuntimeError("API key expired.")
+        erro.status_code = 401
+        raise erro
+
+
+def test_ai_does_not_retry_permanent_client_errors(monkeypatch):
+    monkeypatch.setattr(ai.settings, "AI_MAX_TENTATIVAS", 3)
+    completions = _AuthErrorCompletions()
+    with pytest.raises(AIServiceUnavailable):
+        ai.generate_recipe(["Tomate", "Cebola", "Alho"], client=_Client(completions))
+    assert completions.calls == 1
+
+
+def _cliente_com_respostas(*respostas):
+    class _Sequencia:
+        def __init__(self):
+            self.calls = 0
+            self.kwargs = []
+
+        def create(self, **kwargs):
+            self.kwargs.append(kwargs)
+            resposta = respostas[min(self.calls, len(respostas) - 1)]
+            self.calls += 1
+            return resposta
+
+    completions = _Sequencia()
+    return _Client(completions), completions
+
+
+_RECEITA_OK = {"nome": "Omelete", "modo_preparo": "Bata.", "ingredientes": []}
+
+
+def test_ai_retries_when_reasoning_model_returns_no_content(monkeypatch):
+    monkeypatch.setattr(ai.settings, "AI_MAX_TENTATIVAS", 3)
+    vazio = _Resp(None)
+    vazio.choices[0].finish_reason = "length"
+    client, completions = _cliente_com_respostas(vazio, _Resp(json.dumps(_RECEITA_OK)))
+
+    assert ai.generate_recipe(["Ovo", "Queijo", "Sal"], client=client)["nome"] == "Omelete"
+    assert completions.calls == 2
+
+
+def test_ai_extracts_json_surrounded_by_text():
+    texto = "Claro! Aqui está:\n```json\n" + json.dumps(_RECEITA_OK) + "\n```\nBom apetite!"
+    client, _ = _cliente_com_respostas(_Resp(texto))
+    assert ai.generate_recipe(["Ovo", "Queijo", "Sal"], client=client)["nome"] == "Omelete"
+
+
+def test_ai_non_recipe_answer_is_retried(monkeypatch):
+    monkeypatch.setattr(ai.settings, "AI_MAX_TENTATIVAS", 2)
+    client, completions = _cliente_com_respostas(
+        _Resp("User Safety: safe"), _Resp(json.dumps(_RECEITA_OK))
+    )
+    assert ai.generate_recipe(["Ovo", "Queijo", "Sal"], client=client)["nome"] == "Omelete"
+    assert completions.calls == 2
+
+
+def test_ai_request_uses_token_budget_and_low_reasoning():
+    client, completions = _cliente_com_respostas(_Resp(json.dumps(_RECEITA_OK)))
+    ai.generate_recipe(["Ovo", "Queijo", "Sal"], client=client)
+    kwargs = completions.kwargs[0]
+    assert kwargs["max_tokens"] == ai.settings.AI_MAX_TOKENS
+    assert kwargs["extra_body"]["reasoning"]["effort"] == "low"
+
+
+def test_ai_slow_response_hits_total_deadline(monkeypatch):
+    import time
+
+    monkeypatch.setattr(ai.settings, "AI_TIMEOUT", 0.2)
+    monkeypatch.setattr(ai.settings, "AI_MAX_TENTATIVAS", 1)
+
+    class _Lenta:
+        def create(self, **kwargs):
+            time.sleep(1)
+            return _Resp(json.dumps(_RECEITA_OK))
+
+    inicio = time.monotonic()
+    with pytest.raises(AIServiceUnavailable):
+        ai.generate_recipe(["Ovo", "Queijo", "Sal"], client=_Client(_Lenta()))
+    assert time.monotonic() - inicio < 0.8

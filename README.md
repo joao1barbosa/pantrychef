@@ -302,8 +302,9 @@ configuradas.
 | `AI_API_KEY` | só p/ geração | Chave da API da OpenRouter (`sk-or-...`). |
 | `AI_BASE_URL` | não | Endpoint compatível com OpenAI (padrão `https://openrouter.ai/api/v1`). |
 | `AI_MODEL` | não | Modelo de geração (padrão `openrouter/free`). |
-| `AI_TIMEOUT` | não | Tempo limite por chamada externa, em segundos (padrão `30`). |
-| `AI_MAX_TENTATIVAS` | não | Número de tentativas por geração (padrão `2`). |
+| `AI_TIMEOUT` | não | Prazo total de cada tentativa de chamada à IA, em segundos (padrão `30`). |
+| `AI_MAX_TENTATIVAS` | não | Tentativas por chamada à IA; erros permanentes (ex.: chave inválida) não são repetidos (padrão `3`). |
+| `AI_MAX_TOKENS` | não | Tokens máximos por resposta da IA (padrão `4096`). |
 | `RATE_LIMIT_LOGIN` | não | Tentativas de login por IP na janela (padrão `10`; `0` desativa). |
 | `RATE_LIMIT_IA` | não | Buscas que podem acionar IA por IP na janela (padrão `15`; `0` desativa). |
 | `RATE_LIMIT_JANELA_SEGUNDOS` | não | Tamanho da janela dos limites de login e IA (padrão `60`). |
