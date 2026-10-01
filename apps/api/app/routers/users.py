@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, limitar_cadastro
 from app.models.user import Usuario
 from app.schemas.user import (
     PreferencesResponse,
@@ -28,6 +28,7 @@ router = APIRouter(prefix="/users", tags=["Usuários"])
     status_code=status.HTTP_201_CREATED,
     summary="Cadastrar usuário",
     description="Cria um novo usuário com e-mail único e senha protegida por hash.",
+    dependencies=[Depends(limitar_cadastro)],
 )
 def register(data: UserCreate, db: Session = Depends(get_db)) -> UserOut:
     return create_user(db, data)
@@ -47,7 +48,7 @@ def read_me(current_user: Usuario = Depends(get_current_user)) -> UserOut:
     "/me",
     response_model=UserOut,
     summary="Atualizar perfil",
-    description="Atualiza nome e/ou senha do usuário autenticado.",
+    description="Atualiza nome, e-mail e/ou senha do usuário autenticado.",
 )
 def update_me(
     data: UserUpdate,

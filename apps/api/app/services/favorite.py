@@ -10,6 +10,7 @@ from app.services.recipe import buscar_receita_ou_404, serializar_receita
 def _serializar_favorito(favorito: Favorito) -> dict:
     return {
         "id": favorito.id,
+        "receita_id": favorito.receita_id,
         "salvo_em": favorito.salvo_em,
         "receita": serializar_receita(favorito.receita),
     }

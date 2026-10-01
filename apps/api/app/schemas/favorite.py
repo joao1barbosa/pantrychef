@@ -12,5 +12,6 @@ class FavoriteCreate(BaseModel):
 
 class FavoriteOut(BaseModel):
     id: UUID
+    receita_id: UUID
     salvo_em: datetime
     receita: RecipeOut

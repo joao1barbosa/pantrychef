@@ -1,6 +1,6 @@
 {
   "name": "PantryChef",
-  "dockerComposeFile": "../docker-compose.yml",
+  "dockerComposeFile": ["../docker-compose.yml", "../docker-compose.dev.yml"],
   "service": "api",
   "workspaceFolder": "/workspaces/pantrychef",
 
@@ -32,6 +32,6 @@
     }
   },
 
-  "postCreateCommand": "pip install -r apps/api/requirements.txt",
+  "postCreateCommand": "pip install -r apps/api/requirements-dev.txt",
   "remoteUser": "root"
 }

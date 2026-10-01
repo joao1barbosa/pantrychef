@@ -1,63 +1,74 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect, beforeEach } from 'vitest'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter } from 'react-router-dom'
-import React from 'react'
+import { describe, expect, it } from 'vitest'
 
 import { LoginPage } from '@/features/auth/pages/login-page'
+import { SESSAO_EXPIRADA_KEY } from '@/lib/api'
+import { renderComRotas } from './utils'
 
-function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  })
-  return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
-    </QueryClientProvider>
-  )
+function renderLogin(rota = '/login') {
+  return renderComRotas(<LoginPage />, { rota, caminho: '/login', extras: ['/', '/favorites'] })
 }
 
 describe('LoginPage', () => {
-  beforeEach(() => {
-    localStorage.clear()
+  it('renderiza o formulário de login', () => {
+    renderLogin()
+    expect(screen.getByRole('heading', { name: 'Entrar' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+    expect(screen.getByLabelText('Senha')).toBeInTheDocument()
   })
 
-  it('deve renderizar o formulário de login', () => {
-    render(<LoginPage />, { wrapper: createWrapper() })
-
-    expect(screen.getAllByText('Entrar').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/senha/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument()
-  })
-
-  it('deve fazer login com credenciais válidas', async () => {
+  it('valida campos antes de enviar', async () => {
     const user = userEvent.setup()
-    render(<LoginPage />, { wrapper: createWrapper() })
-
-    await user.type(screen.getByLabelText(/email/i), 'joao@test.com')
-    await user.type(screen.getByLabelText(/senha/i), 'senha123')
-    await user.click(screen.getByRole('button', { name: /entrar/i }))
-
-    await waitFor(() => {
-      expect(localStorage.getItem('token')).toBeTruthy()
-    })
+    renderLogin()
+    await user.click(screen.getByRole('button', { name: 'Entrar' }))
+    expect(await screen.findByText('Email inválido')).toBeInTheDocument()
+    expect(screen.getByText('Senha é obrigatória')).toBeInTheDocument()
   })
 
-  it('deve mostrar mensagem de erro quando credenciais estão incorretas', async () => {
+  it('faz login e volta para a página de origem (?next=)', async () => {
     const user = userEvent.setup()
-    render(<LoginPage />, { wrapper: createWrapper() })
+    renderLogin('/login?next=%2Ffavorites')
+    await user.type(screen.getByLabelText('Email'), 'joao@test.com')
+    await user.type(screen.getByLabelText('Senha'), 'senha123')
+    await user.click(screen.getByRole('button', { name: 'Entrar' }))
 
-    await user.type(screen.getByLabelText(/email/i), 'joao@test.com')
-    await user.type(screen.getByLabelText(/senha/i), 'senha-errada')
-    await user.click(screen.getByRole('button', { name: /entrar/i }))
+    expect(await screen.findByText('rota:/favorites')).toBeInTheDocument()
+    expect(localStorage.getItem('token')).toBeTruthy()
+  })
 
-    await waitFor(() => {
-      expect(screen.getByText(/email ou senha incorretos/i)).toBeInTheDocument()
-    })
+  it('ignora ?next= externo (open redirect)', async () => {
+    const user = userEvent.setup()
+    renderLogin('/login?next=%2F%2Fevil.com')
+    await user.type(screen.getByLabelText('Email'), 'joao@test.com')
+    await user.type(screen.getByLabelText('Senha'), 'senha123')
+    await user.click(screen.getByRole('button', { name: 'Entrar' }))
+    expect(await screen.findByText('rota:/')).toBeInTheDocument()
+  })
+
+  it('mostra erro com credenciais incorretas', async () => {
+    const user = userEvent.setup()
+    renderLogin()
+    await user.type(screen.getByLabelText('Email'), 'joao@test.com')
+    await user.type(screen.getByLabelText('Senha'), 'errada123')
+    await user.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Email ou senha incorretos')
+    expect(localStorage.getItem('token')).toBeNull()
+  })
+
+  it('avisa quando a sessão expirou', () => {
+    sessionStorage.setItem(SESSAO_EXPIRADA_KEY, '1')
+    renderLogin()
+    expect(screen.getByText(/sessão expirou/i)).toBeInTheDocument()
+  })
+
+  it('permite mostrar a senha', async () => {
+    const user = userEvent.setup()
+    renderLogin()
+    const campo = screen.getByLabelText('Senha')
+    expect(campo).toHaveAttribute('type', 'password')
+    await user.click(screen.getByRole('button', { name: 'Mostrar senha' }))
+    await waitFor(() => expect(campo).toHaveAttribute('type', 'text'))
   })
 })

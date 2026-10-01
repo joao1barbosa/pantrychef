@@ -10,15 +10,16 @@ from app.dependencies import (
     get_ai_validator,
     get_current_user,
     get_optional_user,
+    limitar_ia,
 )
 from app.models.user import Usuario
-from app.schemas.recipe import Dificuldade, RecipeCreate, RecipeOut
+from app.schemas.recipe import Dificuldade, Ordenacao, RecipeCreate, RecipeOut
 from app.schemas.search import IngredientSearch, IngredientSearchByName
 from app.services.history import registrar_visualizacao
-from app.services.ingredient import get_or_create_ingrediente
 from app.services.recipe import (
     atualizar_receita,
     buscar_com_fallback_ia,
+    buscar_por_nomes,
     criar_receita,
     deletar_receita,
     listar_receitas,
@@ -49,21 +50,24 @@ def create_recipe(
     summary="Listar receitas",
     description=(
         "Lista receitas, com filtros opcionais por nome, categoria, "
-        "tempo de preparo, dificuldade e ordenação."
+        "tempo de preparo, dificuldade e ordenação, com paginação via limit/offset."
     ),
 )
 def list_recipes(
-    nome: str | None = None,
-    categoria: str | None = None,
+    nome: str | None = Query(default=None, max_length=120),
+    categoria: str | None = Query(default=None, max_length=60),
     tempo_min: int | None = Query(default=None, gt=0),
     tempo_max: int | None = Query(default=None, gt=0),
     dificuldade: Dificuldade | None = None,
-    ordenacao: str | None = Query(
-        default=None,
-        pattern="^(tempo_asc|tempo_desc|nome_asc|nome_desc|recentes)$",
-    ),
+    ordenacao: Ordenacao | None = None,
+    limit: int | None = Query(default=None, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> list[RecipeOut]:
+    if tempo_min is not None and tempo_max is not None and tempo_max < tempo_min:
+        raise HTTPException(
+            status_code=422, detail="tempo_max deve ser maior ou igual a tempo_min."
+        )
     return listar_receitas(
         db,
         nome=nome,
@@ -72,6 +76,8 @@ def list_recipes(
         tempo_max=tempo_max,
         dificuldade=dificuldade,
         ordenacao=ordenacao,
+        limite=limit,
+        deslocamento=offset,
     )
 
 
@@ -80,6 +86,7 @@ def list_recipes(
     response_model=list[RecipeOut],
     summary="Buscar receitas por ingredientes",
     description="Retorna receitas preparáveis com os ingredientes informados (mínimo de 3).",
+    dependencies=[Depends(limitar_ia)],
 )
 def search_recipes(
     data: IngredientSearch,
@@ -93,7 +100,11 @@ def search_recipes(
     "/search-by-name",
     response_model=list[RecipeOut],
     summary="Buscar receitas por nomes de ingredientes",
-    description="Aceita nomes de ingredientes em texto livre, valida via IA, e busca/gera receitas.",
+    description=(
+        "Aceita nomes de ingredientes em texto livre. Nomes já cadastrados são usados "
+        "diretamente; apenas os desconhecidos são validados via IA."
+    ),
+    dependencies=[Depends(limitar_ia)],
 )
 def search_recipes_by_name(
     data: IngredientSearchByName,
@@ -101,22 +112,7 @@ def search_recipes_by_name(
     gerar: Callable[[list[str]], dict] = Depends(get_ai_generator),
     validar: Callable[[list[str]], dict] = Depends(get_ai_validator),
 ) -> list[RecipeOut]:
-    validacao = validar(data.ingredientes)
-
-    validos = validacao.get("validos", [])
-    invalidos = validacao.get("invalidos", [])
-    if len(validos) < 3:
-        detalhe = "Envie pelo menos 3 ingredientes válidos."
-        if invalidos:
-            detalhe += f" Inválidos: {', '.join(str(i) for i in invalidos)}"
-        raise HTTPException(status_code=422, detail=detalhe)
-
-    ingrediente_ids = []
-    for item in validos:
-        ing = get_or_create_ingrediente(db, item["normalizado"])
-        ingrediente_ids.append(ing.id)
-
-    return buscar_com_fallback_ia(db, ingrediente_ids, gerar)
+    return buscar_por_nomes(db, data.ingredientes, gerar, validar)
 
 
 @router.get(
@@ -127,11 +123,15 @@ def search_recipes_by_name(
 )
 def get_recipe(
     receita_id: UUID,
+    registrar: bool = Query(
+        default=True,
+        description="Quando falso, não registra a visualização no histórico.",
+    ),
     db: Session = Depends(get_db),
     current_user: Usuario | None = Depends(get_optional_user),
 ) -> RecipeOut:
     receita = obter_receita(db, receita_id)
-    if current_user is not None:
+    if current_user is not None and registrar:
         registrar_visualizacao(db, current_user.id, receita_id)
     return receita
 

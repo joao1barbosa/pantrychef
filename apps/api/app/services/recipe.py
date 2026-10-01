@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.exceptions import AIServiceUnavailable
+from app.models.favorite import Favorito
 from app.models.ingredient import Ingrediente
 from app.models.recipe import Receita
 from app.models.recipe_ingredient import ReceitaIngrediente
@@ -55,6 +56,7 @@ def serializar_receita(receita: Receita) -> dict:
         "categoria": receita.categoria,
         "tempo_preparo": receita.tempo_preparo,
         "dificuldade": receita.dificuldade,
+        "gerada_por_ia": bool(receita.gerada_por_ia),
         "criado_em": receita.criado_em,
         "ingredientes": [
             {
@@ -94,7 +96,10 @@ def _montar_itens(data: RecipeCreate) -> list[ReceitaIngrediente]:
 
 
 def criar_receita(
-    db: Session, data: RecipeCreate, usuario_id: UUID | None = None
+    db: Session,
+    data: RecipeCreate,
+    usuario_id: UUID | None = None,
+    gerada_por_ia: bool = False,
 ) -> dict:
     _validar_ingredientes(db, data)
     receita = Receita(
@@ -105,6 +110,7 @@ def criar_receita(
         tempo_preparo=data.tempo_preparo,
         dificuldade=data.dificuldade,
         usuario_id=usuario_id,
+        gerada_por_ia=gerada_por_ia,
         itens=_montar_itens(data),
     )
     db.add(receita)
@@ -122,9 +128,11 @@ def _aplicar_filtros(
     dificuldade: str | None = None,
 ):
     if nome:
-        query = query.filter(Receita.nome.ilike(f"%{nome}%"))
+        query = query.filter(Receita.nome.ilike(f"%{_escapar_like(nome)}%", escape="\\"))
     if categoria:
-        query = query.filter(Receita.categoria.ilike(f"%{categoria}%"))
+        query = query.filter(
+            Receita.categoria.ilike(f"%{_escapar_like(categoria)}%", escape="\\")
+        )
     if tempo_min is not None:
         query = query.filter(Receita.tempo_preparo >= tempo_min)
     if tempo_max is not None:
@@ -134,7 +142,21 @@ def _aplicar_filtros(
     return query
 
 
+def _escapar_like(valor: str) -> str:
+    return valor.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _contagem_favoritos():
+    return (
+        select(func.count(Favorito.id))
+        .where(Favorito.receita_id == Receita.id)
+        .scalar_subquery()
+    )
+
+
 def _aplicar_ordenacao(query, ordenacao: str | None):
+    if ordenacao == "populares":
+        return query.order_by(_contagem_favoritos().desc(), Receita.criado_em.desc())
     if ordenacao == "tempo_asc":
         return query.order_by(Receita.tempo_preparo.asc().nulls_last())
     if ordenacao == "tempo_desc":
@@ -154,11 +176,18 @@ def listar_receitas(
     tempo_max: int | None = None,
     dificuldade: str | None = None,
     ordenacao: str | None = None,
+    limite: int | None = None,
+    deslocamento: int = 0,
 ) -> list[dict]:
     query = _aplicar_filtros(
         _query_receitas(db), nome, categoria, tempo_min, tempo_max, dificuldade
     )
-    receitas = _aplicar_ordenacao(query, ordenacao).all()
+    query = _aplicar_ordenacao(query, ordenacao).order_by(Receita.id)
+    if deslocamento:
+        query = query.offset(deslocamento)
+    if limite is not None:
+        query = query.limit(limite)
+    receitas = query.all()
     return [serializar_receita(receita) for receita in receitas]
 
 
@@ -260,29 +289,56 @@ def _nomes_dos_ingredientes(db: Session, ingrediente_ids: list[UUID]) -> list[st
     return [nome for (nome,) in linhas]
 
 
+def _texto_ou_none(valor, limite: int) -> str | None:
+    if valor is None:
+        return None
+    texto = str(valor).strip()
+    return texto[:limite] or None
+
+
+def _tempo_valido(valor) -> int | None:
+    try:
+        tempo = int(valor)
+    except (TypeError, ValueError):
+        return None
+    return tempo if 0 < tempo <= 1440 else None
+
+
 def _persistir_receita_gerada(db: Session, gerada: dict) -> dict:
-    slug = slugify(gerada["nome"])
+    nome = _texto_ou_none(gerada.get("nome"), 120)
+    modo_preparo = _texto_ou_none(gerada.get("modo_preparo"), 10000)
+    if nome is None or modo_preparo is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Serviço de IA indisponível no momento.",
+        )
+    slug = slugify(nome)
     existente = _query_receitas(db).filter(Receita.slug == slug).first()
     if existente is not None:
         return serializar_receita(existente)
 
-    ingredientes = []
-    for item in gerada.get("ingredientes", []):
-        ingrediente = get_or_create_ingrediente(db, item["nome"])
-        ingredientes.append(
+    ingredientes: dict[UUID, RecipeIngredientIn] = {}
+    for item in gerada.get("ingredientes", [])[:50]:
+        nome_ingrediente = _texto_ou_none(item.get("nome"), 60)
+        if nome_ingrediente is None:
+            continue
+        ingrediente = get_or_create_ingrediente(db, nome_ingrediente)
+        ingredientes.setdefault(
+            ingrediente.id,
             RecipeIngredientIn(
-                ingrediente_id=ingrediente.id, quantidade=item.get("quantidade")
-            )
+                ingrediente_id=ingrediente.id,
+                quantidade=_texto_ou_none(item.get("quantidade"), 60),
+            ),
         )
     receita = RecipeCreate(
-        nome=gerada["nome"],
-        modo_preparo=gerada["modo_preparo"],
-        categoria=gerada.get("categoria"),
-        tempo_preparo=gerada.get("tempo_preparo"),
-        dificuldade=normalizar_dificuldade(gerada.get("dificuldade")),
-        ingredientes=ingredientes,
+        nome=nome,
+        modo_preparo=modo_preparo,
+        categoria=_texto_ou_none(gerada.get("categoria"), 60),
+        tempo_preparo=_tempo_valido(gerada.get("tempo_preparo")),
+        dificuldade=normalizar_dificuldade(_texto_ou_none(gerada.get("dificuldade"), 20)),
+        ingredientes=list(ingredientes.values()),
     )
-    return criar_receita(db, receita)
+    return criar_receita(db, receita, gerada_por_ia=True)
 
 
 def buscar_com_fallback_ia(
@@ -303,3 +359,58 @@ def buscar_com_fallback_ia(
             detail="Serviço de IA indisponível no momento.",
         )
     return [_persistir_receita_gerada(db, gerada)]
+
+
+def resolver_ingredientes_por_nome(
+    db: Session, nomes: list[str]
+) -> tuple[list[Ingrediente], list[str]]:
+    conhecidos: dict[UUID, Ingrediente] = {}
+    desconhecidos: list[str] = []
+    for nome in nomes:
+        ingrediente = (
+            db.query(Ingrediente).filter(Ingrediente.slug == slugify(nome)).first()
+        )
+        if ingrediente is None:
+            desconhecidos.append(nome)
+        else:
+            conhecidos.setdefault(ingrediente.id, ingrediente)
+    return list(conhecidos.values()), desconhecidos
+
+
+def buscar_por_nomes(
+    db: Session,
+    nomes: list[str],
+    gerar: Callable[[list[str]], dict],
+    validar: Callable[[list[str]], dict],
+) -> list[dict]:
+    conhecidos, desconhecidos = resolver_ingredientes_por_nome(db, nomes)
+    ids = [ingrediente.id for ingrediente in conhecidos]
+    invalidos: list[str] = []
+
+    if desconhecidos:
+        try:
+            validacao = validar(desconhecidos)
+        except AIServiceUnavailable:
+            if len(ids) < 3:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail=(
+                        "Não foi possível validar os ingredientes digitados agora. "
+                        "Escolha ingredientes da lista ou tente novamente mais tarde."
+                    ),
+                )
+            validacao = {"validos": [], "invalidos": []}
+        for item in validacao.get("validos", []):
+            ingrediente = get_or_create_ingrediente(db, item["normalizado"][:60])
+            if ingrediente.id not in ids:
+                ids.append(ingrediente.id)
+        invalidos = [str(i) for i in validacao.get("invalidos", [])]
+        db.commit()
+
+    if len(ids) < 3:
+        detalhe = "Envie pelo menos 3 ingredientes válidos."
+        if invalidos:
+            detalhe += f" Inválidos: {', '.join(invalidos)}"
+        raise HTTPException(status_code=422, detail=detalhe)
+
+    return buscar_com_fallback_ia(db, ids, gerar)

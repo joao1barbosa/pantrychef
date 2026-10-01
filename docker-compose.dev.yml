@@ -1,5 +1,15 @@
 services:
   api:
+    build:
+      args:
+        INSTALL_DEV: "true"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./apps/api:/app
       - .:/workspaces/pantrychef
+
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"

@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from app.services.ingredient import get_or_create_ingrediente
 
 INGREDIENTES = [
-    # Temperos e condimentos
     "Sal",
     "Açúcar",
     "Pimenta do Reino",
@@ -34,7 +33,6 @@ INGREDIENTES = [
     "Ketchup",
     "Maionese",
 
-    # Gorduras e óleos
     "Azeite",
     "Manteiga",
     "Margarina",
@@ -43,7 +41,6 @@ INGREDIENTES = [
     "Azeite de Dendê",
     "Banha",
 
-    # Proteínas - carnes
     "Frango",
     "Carne Moída",
     "Carne de Sol",
@@ -60,7 +57,6 @@ INGREDIENTES = [
     "Sardinha em Lata",
     "Ovo",
 
-    # Laticínios
     "Leite",
     "Queijo",
     "Queijo Mussarela",
@@ -73,7 +69,6 @@ INGREDIENTES = [
     "Iogurte",
     "Manteiga",
 
-    # Grãos, cereais e farinhas
     "Arroz",
     "Feijão",
     "Feijão Preto",
@@ -93,7 +88,6 @@ INGREDIENTES = [
     "Quinoa",
     "Couscous",
 
-    # Legumes e verduras
     "Tomate",
     "Batata",
     "Batata Doce",
@@ -121,7 +115,6 @@ INGREDIENTES = [
     "Inhame",
     "Cará",
 
-    # Frutas
     "Banana",
     "Maçã",
     "Laranja",
@@ -141,7 +134,6 @@ INGREDIENTES = [
     "Pêssego",
     "Ameixa",
 
-    # Oleaginosas e sementes
     "Castanha de Caju",
     "Amendoim",
     "Pasta de Amendoim",
@@ -149,7 +141,6 @@ INGREDIENTES = [
     "Linhaça",
     "Chia",
 
-    # Outros
     "Açúcar Mascavo",
     "Mel",
     "Chocolate em Pó",

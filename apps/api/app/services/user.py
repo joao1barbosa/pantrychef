@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.user import Usuario
@@ -8,13 +9,23 @@ from app.schemas.user import PreferencesUpdate, UserCreate, UserUpdate
 from app.services.security import hash_password, verify_password
 
 
+def _email_em_uso(db: Session, email: str, exceto_id=None) -> bool:
+    query = db.query(Usuario).filter(func.lower(Usuario.email) == email.lower())
+    if exceto_id is not None:
+        query = query.filter(Usuario.id != exceto_id)
+    return query.first() is not None
+
+
+def _erro_email_em_uso() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="E-mail já cadastrado.",
+    )
+
+
 def create_user(db: Session, data: UserCreate) -> Usuario:
-    existing = db.query(Usuario).filter(Usuario.email == data.email).first()
-    if existing is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="E-mail já cadastrado.",
-        )
+    if _email_em_uso(db, data.email):
+        raise _erro_email_em_uso()
 
     user = Usuario(
         nome=data.nome,
@@ -30,7 +41,10 @@ def create_user(db: Session, data: UserCreate) -> Usuario:
 def authenticate_user(db: Session, email: str, senha: str) -> Usuario:
     user = (
         db.query(Usuario)
-        .filter(Usuario.email == email, Usuario.deletado_em.is_(None))
+        .filter(
+            func.lower(Usuario.email) == email.strip().lower(),
+            Usuario.deletado_em.is_(None),
+        )
         .first()
     )
     if user is None or not verify_password(senha, user.senha_hash):
@@ -45,6 +59,10 @@ def authenticate_user(db: Session, email: str, senha: str) -> Usuario:
 def update_user(db: Session, user: Usuario, data: UserUpdate) -> Usuario:
     if data.nome is not None:
         user.nome = data.nome
+    if data.email is not None and data.email != user.email.lower():
+        if _email_em_uso(db, data.email, exceto_id=user.id):
+            raise _erro_email_em_uso()
+        user.email = data.email
     if data.senha is not None:
         user.senha_hash = hash_password(data.senha)
     db.commit()
