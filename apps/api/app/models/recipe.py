@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, false
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
@@ -16,6 +16,7 @@ class Receita(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     categoria = Column(String, nullable=True)
     tempo_preparo = Column(Integer, nullable=True)
     dificuldade = Column(String, nullable=True)
+    gerada_por_ia = Column(Boolean, nullable=False, default=False, server_default=false())
     usuario_id = Column(
         UUID(as_uuid=True),
         ForeignKey("usuarios.id", ondelete="SET NULL"),

@@ -2,14 +2,15 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 Dificuldade = Literal["facil", "medio", "dificil"]
+Ordenacao = Literal["tempo_asc", "tempo_desc", "nome_asc", "nome_desc", "recentes", "populares"]
 
 
 class RecipeIngredientIn(BaseModel):
     ingrediente_id: UUID
-    quantidade: str | None = None
+    quantidade: str | None = Field(default=None, max_length=60)
 
 
 class RecipeIngredientOut(BaseModel):
@@ -19,15 +20,25 @@ class RecipeIngredientOut(BaseModel):
 
 
 class RecipeBase(BaseModel):
-    nome: str = Field(min_length=1)
-    modo_preparo: str = Field(min_length=1)
-    categoria: str | None = None
-    tempo_preparo: int | None = Field(default=None, gt=0)
+    nome: str = Field(min_length=1, max_length=120)
+    modo_preparo: str = Field(min_length=1, max_length=10000)
+    categoria: str | None = Field(default=None, max_length=60)
+    tempo_preparo: int | None = Field(default=None, gt=0, le=1440)
     dificuldade: Dificuldade | None = None
 
 
 class RecipeCreate(RecipeBase):
-    ingredientes: list[RecipeIngredientIn] = Field(default_factory=list)
+    ingredientes: list[RecipeIngredientIn] = Field(default_factory=list, max_length=50)
+
+    @field_validator("ingredientes")
+    @classmethod
+    def ingredientes_sem_repeticao(
+        cls, ingredientes: list[RecipeIngredientIn]
+    ) -> list[RecipeIngredientIn]:
+        ids = [item.ingrediente_id for item in ingredientes]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Cada ingrediente só pode aparecer uma vez na receita.")
+        return ingredientes
 
 
 class RecipeUpdate(RecipeCreate):
@@ -40,12 +51,9 @@ class RecipeOut(RecipeBase):
     id: UUID
     slug: str
     usuario_id: UUID | None = None
+    gerada_por_ia: bool = False
     criado_em: datetime
     ingredientes: list[RecipeIngredientOut] = Field(default_factory=list)
 
 
 RecipeResponse = RecipeOut
-
-
-class IngredientSearchByName(BaseModel):
-    ingredientes: list[str] = Field(min_length=3, max_length=10)
