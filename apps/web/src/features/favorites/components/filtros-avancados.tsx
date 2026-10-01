@@ -107,7 +107,7 @@ export function FiltrosAvancados({
         </Button>
       </header>
 
-      <main className="flex flex-1 flex-col gap-7 overflow-y-auto px-4 pt-2 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex flex-1 flex-col gap-7 overflow-y-auto px-4 pt-2 pb-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <section className="flex flex-col gap-1">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-[17px] font-bold">Tempo de preparo</h2>
@@ -211,7 +211,7 @@ export function FiltrosAvancados({
             onChange={(v) => atualizar('origem', v)}
           />
         </Secao>
-      </main>
+      </div>
 
       <footer className="shrink-0 border-t border-foreground/10 bg-background px-4 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <Button
