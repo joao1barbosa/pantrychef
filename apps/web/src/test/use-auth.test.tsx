@@ -51,7 +51,7 @@ describe('useAuth', () => {
     })
 
     await expect(
-      result.current.login({ email: 'joao@test.com', senha: 'senha-errada' })
+      result.current.login({ email: 'joao@test.com', senha: 'senha-errada' }),
     ).rejects.toThrow()
 
     expect(localStorage.getItem('token')).toBeNull()

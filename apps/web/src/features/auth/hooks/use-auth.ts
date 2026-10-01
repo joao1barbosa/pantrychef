@@ -1,11 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchWithAuth, API_URL } from '@/lib/api'
+import { API_URL, ApiError, TOKEN_KEY, fetchWithAuth, getToken, mensagemDoDetalhe } from '@/lib/api'
+import type { Usuario } from '@/types'
 
-export interface User {
-  id: string
-  nome: string
-  email: string
-}
+export type User = Usuario
 
 export interface LoginData {
   email: string
@@ -18,64 +15,78 @@ export interface RegisterData {
   senha: string
 }
 
+export const USUARIO_QUERY_KEY = ['users', 'me'] as const
+
+async function postSemToken(url: string, init: RequestInit) {
+  try {
+    return await fetch(`${API_URL}${url}`, init)
+  } catch {
+    throw new ApiError(0, 'Sem conexão com o servidor. Verifique sua internet.')
+  }
+}
+
 async function login(data: LoginData): Promise<{ access_token: string }> {
   const formData = new URLSearchParams()
-  formData.append('username', data.email)
+  formData.append('username', data.email.trim())
   formData.append('password', data.senha)
 
-  const response = await fetch(`${API_URL}/auth/login`, {
+  const response = await postSemToken('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: formData.toString(),
   })
 
   if (!response.ok) {
-    throw new Error('Email ou senha incorretos')
+    if (response.status === 401) throw new ApiError(401, 'Email ou senha incorretos')
+    const corpo = await response.json().catch(() => null)
+    throw new ApiError(
+      response.status,
+      mensagemDoDetalhe(corpo?.detail) ?? 'Não foi possível entrar. Tente novamente.',
+    )
   }
 
   return response.json()
 }
 
 async function register(data: RegisterData): Promise<User> {
-  const response = await fetch(`${API_URL}/users`, {
+  const response = await postSemToken('/users', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      nome: data.nome,
-      email: data.email,
+      nome: data.nome.trim(),
+      email: data.email.trim(),
       senha: data.senha,
     }),
   })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Erro ao cadastrar' }))
-    if (response.status === 409) {
-      throw new Error('Email já cadastrado')
-    }
-    throw new Error(error.detail || 'Erro ao cadastrar')
+    if (response.status === 409) throw new ApiError(409, 'Email já cadastrado')
+    const corpo = await response.json().catch(() => null)
+    throw new ApiError(
+      response.status,
+      mensagemDoDetalhe(corpo?.detail) ?? 'Não foi possível criar a conta. Tente novamente.',
+    )
   }
 
   return response.json()
 }
 
-async function getCurrentUser(): Promise<User> {
-  return fetchWithAuth('/users/me')
-}
-
 export function useAuth() {
   const queryClient = useQueryClient()
+  const token = getToken()
 
   const { data: user, isLoading } = useQuery({
-    queryKey: ['user'],
-    queryFn: getCurrentUser,
-    enabled: !!localStorage.getItem('token'),
+    queryKey: USUARIO_QUERY_KEY,
+    queryFn: () => fetchWithAuth<User>('/users/me'),
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000,
   })
 
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data) => {
-      localStorage.setItem('token', data.access_token)
-      queryClient.invalidateQueries({ queryKey: ['user'] })
+      queryClient.clear()
+      localStorage.setItem(TOKEN_KEY, data.access_token)
     },
   })
 
@@ -84,13 +95,14 @@ export function useAuth() {
   })
 
   const logout = () => {
-    localStorage.removeItem('token')
+    localStorage.removeItem(TOKEN_KEY)
     queryClient.clear()
-    window.location.href = '/login'
+    window.location.assign('/login')
   }
 
   return {
     user,
+    isAuthenticated: !!token,
     isLoading,
     login: loginMutation.mutateAsync,
     register: registerMutation.mutateAsync,
