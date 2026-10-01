@@ -386,7 +386,7 @@ npm run lint && npm run format:check && npm run build
 ## Integração contínua
 
 O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em todo push
-e pull request para `develop` e `main`:
+(qualquer branch) e em pull requests para `develop` e `main`:
 
 - **API:** Postgres de serviço, ciclo completo de migrações e `pytest`.
 - **Web:** lint (sem avisos), Prettier, testes com cobertura e build.
