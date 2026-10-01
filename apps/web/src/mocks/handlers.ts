@@ -1,6 +1,5 @@
 import { http, HttpResponse } from 'msw'
-
-export const API_URL = 'http://localhost:8000'
+import { API_URL } from '@/lib/api'
 
 // Dados mock
 const mockUser = {

@@ -1,6 +1,6 @@
 import { QueryClient } from '@tanstack/react-query'
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const queryClient = new QueryClient({
   defaultOptions: {

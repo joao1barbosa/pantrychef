@@ -14,6 +14,16 @@ services:
       - ./apps/api:/app
       - .:/workspaces/pantrychef
 
+  frontend:
+    build:
+      context: ./apps/web
+      args:
+        - VITE_API_URL=/api
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
   db:
     image: postgres:15
     env_file: .env
