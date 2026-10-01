@@ -2,16 +2,9 @@ import type { RouteObject } from 'react-router-dom'
 import { MainLayout } from './layouts/main-layout'
 import { AuthLayout } from './layouts/auth-layout'
 import { GuestRoute } from './components/protected-route'
-import {
-  EditRecipePage,
-  FavoritesPage,
-  HistoryPage,
-  LazyProtected,
-  LegacyHomeRedirect,
-  NewRecipePage,
-  ProfilePage,
-} from './components/lazy-pages'
-import { ErrorPage, NotFoundPage } from './components/status-pages'
+import { LegacyHomeRedirect } from './components/legacy-redirect'
+import { rotasLazy } from './lazy-routes'
+import { CarregandoApp, ErrorPage, NotFoundPage } from './components/status-pages'
 import { HomePage } from '@/features/recipes/pages/home-page'
 import { LoginPage } from '@/features/auth/pages/login-page'
 import { RegisterPage } from '@/features/auth/pages/register-page'
@@ -24,50 +17,31 @@ export const routes: RouteObject[] = [
     path: '/',
     element: <MainLayout />,
     errorElement: <ErrorPage />,
+    hydrateFallbackElement: <CarregandoApp />,
     children: [
       { index: true, element: <HomePage /> },
       { path: 'recipes', element: <RecipesPage /> },
       {
         path: 'recipes/new',
-        element: (
-          <LazyProtected>
-            <NewRecipePage />
-          </LazyProtected>
-        ),
+        lazy: rotasLazy.novaReceita,
       },
       { path: 'recipes/:id', element: <RecipeDetailPage /> },
       {
         path: 'recipes/:id/edit',
-        element: (
-          <LazyProtected>
-            <EditRecipePage />
-          </LazyProtected>
-        ),
+        lazy: rotasLazy.editarReceita,
       },
       { path: 'ingredients', element: <IngredientsPage /> },
       {
         path: 'favorites',
-        element: (
-          <LazyProtected>
-            <FavoritesPage />
-          </LazyProtected>
-        ),
+        lazy: rotasLazy.favoritos,
       },
       {
         path: 'history',
-        element: (
-          <LazyProtected>
-            <HistoryPage />
-          </LazyProtected>
-        ),
+        lazy: rotasLazy.historico,
       },
       {
         path: 'profile',
-        element: (
-          <LazyProtected>
-            <ProfilePage />
-          </LazyProtected>
-        ),
+        lazy: rotasLazy.perfil,
       },
       { path: 'home/*', element: <LegacyHomeRedirect /> },
       { path: '*', element: <NotFoundPage /> },

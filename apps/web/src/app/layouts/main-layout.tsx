@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ScrollRestoration, useLocation, useOutlet } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { BottomNav } from '@/shared/components/bottom-nav'
 import { Sidebar } from '@/shared/components/sidebar'
+import { precarregarRotas } from '../lazy-routes'
 
 /**
  * Mantém o conteúdo da rota no momento em que a página montou. Sem isso, a página
@@ -18,6 +19,10 @@ export function MainLayout() {
   const location = useLocation()
   const reduzirMovimento = useReducedMotion()
   const deslocamento = reduzirMovimento ? 0 : 24
+
+  useEffect(() => {
+    precarregarRotas()
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">

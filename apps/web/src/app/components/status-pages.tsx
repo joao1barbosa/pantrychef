@@ -57,3 +57,12 @@ export function ErrorPage() {
     </div>
   )
 }
+
+export function CarregandoApp() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background" aria-busy="true">
+      <span className="size-8 animate-spin rounded-full border-4 border-terracota/20 border-t-terracota" />
+      <span className="sr-only">Carregando...</span>
+    </div>
+  )
+}
