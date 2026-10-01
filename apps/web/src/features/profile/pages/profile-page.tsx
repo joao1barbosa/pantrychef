@@ -256,7 +256,7 @@ export function ProfilePage() {
               </div>
             </CardHeader>
             <CardContent className="px-0 pb-0">
-              <DadosForm key={`${user.nome}|${user.email}`} user={user} />
+              <DadosForm key={user.id} user={user} />
             </CardContent>
           </Card>
         </TabsContent>
